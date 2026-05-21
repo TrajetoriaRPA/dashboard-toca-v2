@@ -1,0 +1,1818 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOCA - Dashboard de Acompanhamento</title>
+    <!-- Tailwind CSS para um design moderno e limpo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para ícones premium -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PapaParse para parsing robusto de arquivos CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Chart.js para visualizações de dados interativas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            200: '#bcdcfe',
+                            500: '#2563eb', // Azul Real Toca
+                            600: '#1d4ed8', // Azul Médio
+                            700: '#1e40af', // Azul Escuro
+                            800: '#1e3a8a', // Azul Noite
+                            900: '#172554', // Azul Escuro Profundo
+                            950: '#0b132b', // Azul Noite de Alta Densidade
+                        },
+                        slate: {
+                            950: '#0f172a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .animate-pulse-subtle {
+            animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .85; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+    <!-- HEADER PRINCIPAL COM PALETA AZUL ESCURO -->
+    <header class="bg-gradient-to-r from-brand-950 via-brand-900 to-slate-900 text-white shadow-md sticky top-0 z-40 border-b border-brand-800">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/10 p-2 rounded-xl backdrop-blur-md shadow-inner flex items-center justify-center border border-white/20">
+                    <!-- Representação do Logo TOCA em SVG -->
+                    <svg class="h-8 w-8 text-brand-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
+                        TOCA <span class="text-brand-200 font-light text-base border-l border-brand-500 pl-2">Dashboard de Projetos</span>
+                    </h1>
+                    <p class="text-xs text-brand-300">Acompanhamento e Controle de Atividades por Demanda</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+                <!-- Status Badge de Atualização -->
+                <div class="bg-brand-950/60 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-semibold text-brand-200 border border-brand-800/80 flex items-center gap-2">
+                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse-subtle"></span>
+                    <span id="update-timestamp">Dados Reais Ativos</span>
+                </div>
+                
+                <!-- Botão Guia Rápido -->
+                <button onclick="toggleHelpModal()" class="bg-brand-800/80 hover:bg-brand-800 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold border border-brand-700 transition flex items-center gap-1.5 shadow-md">
+                    <i class="fa-regular fa-circle-question text-brand-300"></i> Como Atualizar?
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+
+        <!-- ÁREA DE UPLOAD E ATUALIZAÇÃO -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-5 sm:p-6 bg-gradient-to-r from-brand-50/50 via-slate-50 to-transparent border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-brand-700"></i> Atualizar Dados do Painel
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Sempre que atualizar sua planilha no Excel ou Google Sheets, salve-a como <b>.CSV</b> e arraste-a aqui.</p>
+                </div>
+                <div id="upload-feedback" class="hidden px-3 py-1 bg-brand-100 text-brand-900 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-brand-200">
+                    <i class="fa-solid fa-circle-check text-brand-700"></i> Planilha processada com sucesso!
+                </div>
+            </div>
+            
+            <div class="p-5">
+                <!-- Dropzone de arquivo -->
+                <div id="dropzone" class="border-2 border-dashed border-slate-200 hover:border-brand-500 bg-slate-50 hover:bg-brand-50/10 rounded-xl p-6 text-center cursor-pointer transition-all relative group">
+                    <input type="file" id="csv-file-input" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    <div class="space-y-2">
+                        <div class="mx-auto h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 group-hover:scale-105 transition-transform">
+                            <i class="fa-solid fa-file-excel text-lg"></i>
+                        </div>
+                        <div class="space-y-0.5">
+                            <p class="text-xs sm:text-sm font-bold text-slate-700">Arraste seu arquivo <span class="text-brand-700">CSV</span> aqui ou <span class="text-brand-700 underline">clique para procurar</span></p>
+                            <p class="text-[11px] text-slate-400">Certifique-se de que o arquivo contém as colunas: ÁREA, DEMANDA, ATIVIDADE, RESPONSÁVEL, STATUS, etc.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NOVO COMPONENTE: STATUS DO PROJETO POR ÁREA ORGANIZACIONAL (MATRIZ INTERATIVA) -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-table text-brand-600"></i> Status do Projeto por Área Organizacional
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Clique em qualquer Área para filtrar as atividades correspondentes na planilha abaixo.</p>
+                </div>
+                <div id="matrix-filter-indicator" class="hidden text-xs bg-brand-50 text-brand-800 border border-brand-200 px-3 py-1 rounded-lg font-bold flex items-center gap-1">
+                    <i class="fa-solid fa-filter"></i> Filtro Ativo: <span id="matrix-active-area-name">Nenhuma</span>
+                    <button onclick="clearAreaMatrixFilter()" class="hover:text-rose-600 font-extrabold ml-1.5">×</button>
+                </div>
+            </div>
+
+            <!-- Tabela Interativa de Maturidade -->
+            <div class="overflow-x-auto custom-scrollbar border border-slate-100 rounded-xl">
+                <table class="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                            <th class="py-3 px-4">Área Organizacional</th>
+                            <th class="py-3 px-4">1. Mapeamento / Conceito</th>
+                            <th class="py-3 px-4">2. Validação / Piloto</th>
+                            <th class="py-3 px-4">3. Implementação (Plano de Ação)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                        <!-- Linha 1: Comercial -->
+                        <tr id="matrix-row-comercial" onclick="toggleAreaMatrixFilter('COMERCIAL', 'matrix-row-comercial')" class="hover:bg-slate-50/80 cursor-pointer transition-colors">
+                            <td class="py-3.5 px-4 font-bold">
+                                <div class="text-slate-900 text-sm">COMERCIAL</div>
+                                <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Líder: Michele</div>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check"></i> Concluído
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check"></i> Concluído
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <div class="space-y-1.5">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-brand-700 border border-blue-200">
+                                        <i class="fa-solid fa-spinner animate-spin"></i> Em Curso
+                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-20 bg-slate-100 rounded-full h-1.5">
+                                            <div class="bg-brand-600 h-1.5 rounded-full" style="width: 22%"></div>
+                                        </div>
+                                        <span class="text-[10px] font-black text-slate-500">Plano: 22%</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Linha 2: Marketing -->
+                        <tr id="matrix-row-marketing" onclick="toggleAreaMatrixFilter('MARKETING', 'matrix-row-marketing')" class="hover:bg-slate-50/80 cursor-pointer transition-colors">
+                            <td class="py-3.5 px-4 font-bold">
+                                <div class="text-slate-900 text-sm">MARKETING</div>
+                                <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Líder: Anderson</div>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check"></i> Concluído
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check"></i> Concluído
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <div class="space-y-1.5">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-brand-700 border border-blue-200">
+                                        <i class="fa-solid fa-spinner animate-spin"></i> Em Curso
+                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-20 bg-slate-100 rounded-full h-1.5">
+                                            <div class="bg-brand-600 h-1.5 rounded-full" style="width: 24%"></div>
+                                        </div>
+                                        <span class="text-[10px] font-black text-slate-500">Plano: 24%</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Linha 3: Administração de Imóveis -->
+                        <tr id="matrix-row-adm" onclick="toggleAreaMatrixFilter('ADM IMOVEIS', 'matrix-row-adm')" class="hover:bg-slate-50/80 cursor-pointer transition-colors">
+                            <td class="py-3.5 px-4 font-bold">
+                                <div class="text-slate-900 text-sm">ADMINISTRAÇÃO DE IMÓVEIS</div>
+                                <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Líder: Fernanda</div>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check"></i> Concluído
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check"></i> Concluído
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <div class="space-y-1.5">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-brand-700 border border-blue-200">
+                                        <i class="fa-solid fa-spinner animate-spin"></i> Em Curso
+                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-20 bg-slate-100 rounded-full h-1.5">
+                                            <div class="bg-brand-600 h-1.5 rounded-full" style="width: 16%"></div>
+                                        </div>
+                                        <span class="text-[10px] font-black text-slate-500">Plano: 16%</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Linha 4: Financeiro -->
+                        <tr id="matrix-row-financeiro" onclick="toggleAreaMatrixFilter('FINANCEIRO', 'matrix-row-financeiro')" class="hover:bg-slate-50/80 cursor-pointer transition-colors">
+                            <td class="py-3.5 px-4 font-bold">
+                                <div class="text-slate-900 text-sm">FINANCEIRO</div>
+                                <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Líder: Gustavo / Mário</div>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check"></i> Concluído
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check"></i> Concluído
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-400 border border-slate-200">
+                                    <i class="fa-solid fa-ellipsis"></i> Não Iniciado
+                                </span>
+                            </td>
+                        </tr>
+
+                        <!-- Linha 5: Pessoas e Cultura -->
+                        <tr id="matrix-row-rh" onclick="toggleAreaMatrixFilter('RH', 'matrix-row-rh')" class="hover:bg-slate-50/80 cursor-pointer transition-colors">
+                            <td class="py-3.5 px-4 font-bold">
+                                <div class="text-slate-900 text-sm">PESSOAS E CULTURA (RH)</div>
+                                <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Líder: Mirela</div>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check"></i> Concluído
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check"></i> Concluído
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-400 border border-slate-200">
+                                    <i class="fa-solid fa-ellipsis"></i> Não Iniciado
+                                </span>
+                            </td>
+                        </tr>
+
+                        <!-- Linha 6: Tecnologias de Informação -->
+                        <tr id="matrix-row-ti" onclick="toggleAreaMatrixFilter('TI', 'matrix-row-ti')" class="hover:bg-slate-50/80 cursor-pointer transition-colors">
+                            <td class="py-3.5 px-4 font-bold">
+                                <div class="text-slate-900 text-sm">TECNOLOGIAS DE INFORMAÇÃO (TI)</div>
+                                <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Líder: Vinicius / Mário</div>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check"></i> Concluído
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-400 border border-slate-200">
+                                    <i class="fa-solid fa-ellipsis"></i> Não Iniciado
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-400 border border-slate-200">
+                                    <i class="fa-solid fa-ellipsis"></i> Não Iniciado
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- NOVO PAINEL DE PIPELINE DE STATUS SUPERIOR INTERATIVO -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+            <div>
+                <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-toggle-on text-brand-600"></i> Filtro Rápido por Status (Clique para filtrar)
+                </h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">Clique em qualquer etapa do fluxo de trabalho abaixo para focar instantaneamente nas tarefas daquela fase.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- Card Pipeline: Tudo -->
+                <div onclick="selectStatusFilter('')" id="pipeline-card-all" class="cursor-pointer border-2 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between group bg-brand-50/40 border-brand-500 shadow-sm">
+                    <div class="space-y-1">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-brand-800">Todas Atividades</span>
+                        <div class="flex items-baseline gap-1">
+                            <span id="pipeline-count-all" class="text-2xl font-black text-brand-950">0</span>
+                            <span class="text-xs font-semibold text-slate-400">tarefas</span>
+                        </div>
+                    </div>
+                    <div class="h-10 w-10 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-list text-lg"></i>
+                    </div>
+                </div>
+
+                <!-- Card Pipeline: Aberto -->
+                <div onclick="selectStatusFilter('Aberto')" id="pipeline-card-aberto" class="cursor-pointer border-2 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between group bg-white border-slate-200 hover:border-amber-300">
+                    <div class="space-y-1">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-600">Aberto / A Iniciar</span>
+                        <div class="flex items-baseline gap-1">
+                            <span id="pipeline-count-aberto" class="text-2xl font-black text-slate-900">0</span>
+                            <span class="text-xs font-semibold text-slate-400">planejadas</span>
+                        </div>
+                    </div>
+                    <div class="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="fa-regular fa-folder-open text-lg"></i>
+                    </div>
+                </div>
+
+                <!-- Card Pipeline: Em Andamento -->
+                <div onclick="selectStatusFilter('Andamento')" id="pipeline-card-andamento" class="cursor-pointer border-2 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between group bg-white border-slate-200 hover:border-blue-300">
+                    <div class="space-y-1">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-blue-600">Em Andamento</span>
+                        <div class="flex items-baseline gap-1">
+                            <span id="pipeline-count-andamento" class="text-2xl font-black text-slate-900">0</span>
+                            <span class="text-xs font-semibold text-slate-400">em curso</span>
+                        </div>
+                    </div>
+                    <div class="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-spinner text-lg"></i>
+                    </div>
+                </div>
+
+                <!-- Card Pipeline: Fechado / Concluído -->
+                <div onclick="selectStatusFilter('Fechado')" id="pipeline-card-fechado" class="cursor-pointer border-2 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between group bg-white border-slate-200 hover:border-emerald-300">
+                    <div class="space-y-1">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600">Fechado / Concluido</span>
+                        <div class="flex items-baseline gap-1">
+                            <span id="pipeline-count-fechado" class="text-2xl font-black text-slate-900">0</span>
+                            <span class="text-xs font-semibold text-slate-400">concluídas</span>
+                        </div>
+                    </div>
+                    <div class="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="fa-regular fa-circle-check text-lg"></i>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- DASHBOARD METRIC CARDS DE RESUMO -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            
+            <!-- Card 1: Progresso Geral -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between">
+                <div class="space-y-1">
+                    <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Progresso do Escopo</span>
+                    <div class="flex items-baseline gap-2">
+                        <span id="stat-progress-percent" class="text-3xl font-black text-brand-800">0%</span>
+                        <span class="text-xs font-semibold text-slate-400">concluído</span>
+                    </div>
+                    <div class="w-32 bg-slate-100 rounded-full h-1.5 mt-2">
+                        <div id="stat-progress-bar" class="bg-brand-600 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="p-3.5 bg-brand-50 text-brand-700 rounded-2xl">
+                    <i class="fa-solid fa-chart-line text-xl"></i>
+                </div>
+            </div>
+
+            <!-- Card 2: Total de Demandas -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between">
+                <div class="space-y-1">
+                    <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total de Demandas</span>
+                    <div class="flex items-baseline gap-1">
+                        <span id="stat-total-demands" class="text-3xl font-black text-slate-900">0</span>
+                        <span class="text-xs font-semibold text-slate-400">macroentregas</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1" id="stat-active-demands-desc">Estruturadas no painel</p>
+                </div>
+                <div class="p-3.5 bg-indigo-50 text-indigo-700 rounded-2xl">
+                    <i class="fa-solid fa-folder-tree text-xl"></i>
+                </div>
+            </div>
+
+            <!-- Card 3: Tarefas Atrasadas -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between">
+                <div class="space-y-1">
+                    <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Tarefas em Atraso</span>
+                    <div class="flex items-baseline gap-1">
+                        <span id="stat-overdue-tasks" class="text-3xl font-black text-rose-600">0</span>
+                        <span class="text-xs font-semibold text-slate-400">atividades</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1" id="stat-overdue-desc">Prazo expirado sem conclusão</p>
+                </div>
+                <div class="p-3.5 bg-rose-50 text-rose-600 rounded-2xl">
+                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- FILTROS DE PESQUISA -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+            <div class="flex flex-col lg:flex-row gap-4 items-center justify-between">
+                <div class="w-full lg:w-1/3 relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Buscar por Demanda, Atividade ou Responsável..." class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-slate-50/50 transition font-medium">
+                </div>
+                
+                <div class="w-full lg:w-auto flex flex-wrap gap-2.5 items-center justify-end">
+                    <!-- Filtro por Área -->
+                    <div class="flex flex-col min-w-[130px]">
+                        <select id="filter-area" onchange="syncWithDropdownArea()" class="px-3 py-2 border border-slate-200 rounded-xl text-[11px] bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-600">
+                            <option value="">Área: Todas</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Filtro por Responsável -->
+                    <div class="flex flex-col min-w-[130px]">
+                        <select id="filter-responsible" onchange="applyFilters()" class="px-3 py-2 border border-slate-200 rounded-xl text-[11px] bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-600">
+                            <option value="">Responsável: Todos</option>
+                        </select>
+                    </div>
+
+                    <!-- Filtro por Status (Sincronizado com os cards superiores) -->
+                    <div class="flex flex-col min-w-[130px]">
+                        <select id="filter-status" onchange="syncWithDropdown()" class="px-3 py-2 border border-slate-200 rounded-xl text-[11px] bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-600">
+                            <option value="">Status: Todos</option>
+                            <option value="Aberto">Aberto</option>
+                            <option value="Andamento">Em Andamento</option>
+                            <option value="Fechado">Fechado</option>
+                        </select>
+                    </div>
+
+                    <!-- Botão Limpar Filtros -->
+                    <button onclick="clearFilters()" class="px-3.5 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition text-slate-500 hover:text-slate-800 text-[11px] font-bold flex items-center gap-1.5" title="Limpar Filtros">
+                        <i class="fa-solid fa-filter-circle-xmark text-slate-400"></i> Limpar
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABAS DE NAVEGAÇÃO -->
+        <section class="space-y-4">
+            <div class="border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <nav class="flex space-x-6 overflow-x-auto pb-px w-full sm:w-auto" aria-label="Tabs">
+                    <button onclick="switchTab('demandas-tab')" id="btn-demandas-tab" class="border-brand-600 text-brand-800 font-black border-b-2 py-3 px-1 text-xs sm:text-sm whitespace-nowrap flex items-center gap-2 transition tab-btn">
+                        <i class="fa-solid fa-list-check"></i> Agrupado por Demanda
+                    </button>
+                    <!-- ABA DE CRONOGRAMA DE ATIVIDADES -->
+                    <button onclick="switchTab('cronograma-tab')" id="btn-cronograma-tab" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 border-b-2 py-3 px-1 text-xs sm:text-sm whitespace-nowrap flex items-center gap-2 transition tab-btn">
+                        <i class="fa-solid fa-timeline"></i> Cronograma (Gantt)
+                    </button>
+                    <button onclick="switchTab('dashboard-tab')" id="btn-dashboard-tab" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 border-b-2 py-3 px-1 text-xs sm:text-sm whitespace-nowrap flex items-center gap-2 transition tab-btn">
+                        <i class="fa-solid fa-chart-column"></i> Visão Geral & Gráficos
+                    </button>
+                    <button onclick="switchTab('kanban-tab')" id="btn-kanban-tab" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 border-b-2 py-3 px-1 text-xs sm:text-sm whitespace-nowrap flex items-center gap-2 transition tab-btn">
+                        <i class="fa-solid fa-columns"></i> Kanban da Esteira
+                    </button>
+                </nav>
+                <div class="text-[11px] text-slate-400 font-bold whitespace-nowrap pb-2 sm:pb-0">
+                    A exibir: <span id="filtered-count" class="font-extrabold text-slate-700">0</span> de <span id="total-count" class="font-extrabold text-slate-700">0</span> atividades
+                </div>
+            </div>
+
+            <!-- CONTEÚDOS DAS ABAS -->
+
+            <!-- ABA 1: AGRUPADO POR DEMANDA -->
+            <div id="demandas-tab-content" class="tab-content space-y-4">
+                
+                <!-- Lista de Demandas Dinâmicas -->
+                <div id="demands-container" class="space-y-4"></div>
+
+                <div id="empty-state" class="hidden bg-white rounded-2xl p-12 text-center border border-slate-200 space-y-4">
+                    <div class="mx-auto h-12 w-12 text-slate-300">
+                        <i class="fa-solid fa-magnifying-glass text-4xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm sm:text-base font-bold text-slate-700">Nenhum resultado encontrado</h3>
+                        <p class="text-xs text-slate-400 mt-1">Experimente ajustar seus filtros ou termos de busca.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ABA DE CRONOGRAMA DE ATIVIDADES (GANTT) -->
+            <div id="cronograma-tab-content" class="tab-content hidden space-y-4">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+                        <div>
+                            <h3 class="font-black text-slate-900 text-base">Janela Temporal por Demanda</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Espaço de tempo planejado. A barra azul escura representa o progresso de conclusão correspondente ao escopo da demanda.</p>
+                        </div>
+                        <div class="flex items-center gap-4 text-[10px] font-bold text-slate-500">
+                            <span class="flex items-center gap-1.5"><span class="h-2 w-4 bg-brand-100 border border-brand-300 rounded inline-block"></span> Planejado</span>
+                            <span class="flex items-center gap-1.5"><span class="h-2 w-4 bg-brand-800 rounded inline-block"></span> Concluído</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto custom-scrollbar border border-slate-100 rounded-xl">
+                        <div class="min-w-[800px] divide-y divide-slate-100">
+                            
+                            <!-- Eixo Temporal / Cabeçalho dos Meses -->
+                            <div class="flex bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center py-2.5">
+                                <div class="w-1/3 text-left pl-4 border-r border-slate-200">Demanda / Projeto</div>
+                                <div class="w-2/3 grid grid-cols-6 divide-x divide-slate-150 font-extrabold text-slate-600">
+                                    <div>Março 2026</div>
+                                    <div>Abril 2026</div>
+                                    <div>Maio 2026</div>
+                                    <div>Junho 2026</div>
+                                    <div>Julho 2026</div>
+                                    <div>Agosto 2026</div>
+                                </div>
+                            </div>
+
+                            <!-- Contentor Linhas do Gantt -->
+                            <div id="gantt-rows" class="divide-y divide-slate-100"></div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ABA 2: VISÃO GERAL & GRÁFICOS -->
+            <div id="dashboard-tab-content" class="tab-content hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Lado Esquerdo: Resumos de Status -->
+                <div class="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-black text-slate-800 text-sm sm:text-base mb-4">Distribuição de Atividades</h3>
+                        <div class="relative w-44 h-44 mx-auto mb-6">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="space-y-2.5" id="status-legend">
+                        <!-- Gerado dinamicamente via JS -->
+                    </div>
+                </div>
+
+                <!-- Lado Direito: Gráfico de Barras de Progresso por Demanda -->
+                <div class="lg:col-span-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-black text-slate-800 text-sm sm:text-base">Nível de Execução por Demanda</h3>
+                        <span class="text-[10px] font-bold text-slate-400">% de conclusão por demanda</span>
+                    </div>
+                    <div class="h-80 relative">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Estatísticas de Responsáveis e Área -->
+                <div class="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 class="font-black text-slate-800 text-sm sm:text-base mb-4">Atividades por Responsável</h3>
+                        <div class="h-64 relative">
+                            <canvas id="responsibleChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 class="font-black text-slate-800 text-sm sm:text-base mb-4">Atividades por Área</h3>
+                        <div class="h-64 relative">
+                            <canvas id="areaChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ABA 3: KANBAN DA ESTEIRA -->
+            <div id="kanban-tab-content" class="tab-content hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- Coluna Aberto -->
+                <div class="bg-slate-100 rounded-2xl p-4 flex flex-col min-h-[500px] border border-slate-200/50 shadow-sm">
+                    <div class="flex justify-between items-center mb-3.5 px-1.5">
+                        <div class="flex items-center gap-2">
+                            <span class="h-2.5 w-2.5 rounded-full bg-amber-500 shadow"></span>
+                            <h3 class="font-extrabold text-slate-700 text-xs sm:text-sm">Aberto</h3>
+                        </div>
+                        <span id="kanban-count-aberto" class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-bold">0</span>
+                    </div>
+                    <div id="kanban-column-aberto" class="space-y-3 flex-1 overflow-y-auto custom-scrollbar"></div>
+                </div>
+
+                <!-- Coluna Em Andamento -->
+                <div class="bg-slate-100 rounded-2xl p-4 flex flex-col min-h-[500px] border border-slate-200/50 shadow-sm">
+                    <div class="flex justify-between items-center mb-3.5 px-1.5">
+                        <div class="flex items-center gap-2">
+                            <span class="h-2.5 w-2.5 rounded-full bg-blue-500 shadow animate-pulse"></span>
+                            <h3 class="font-extrabold text-slate-700 text-xs sm:text-sm">Em Andamento</h3>
+                        </div>
+                        <span id="kanban-count-andamento" class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-bold">0</span>
+                    </div>
+                    <div id="kanban-column-andamento" class="space-y-3 flex-1 overflow-y-auto custom-scrollbar"></div>
+                </div>
+
+                <!-- Coluna Fechado -->
+                <div class="bg-slate-100 rounded-2xl p-4 flex flex-col min-h-[500px] border border-slate-200/50 shadow-sm">
+                    <div class="flex justify-between items-center mb-3.5 px-1.5">
+                        <div class="flex items-center gap-2">
+                            <span class="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow"></span>
+                            <h3 class="font-extrabold text-slate-700 text-xs sm:text-sm">Fechado</h3>
+                        </div>
+                        <span id="kanban-count-fechado" class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-bold">0</span>
+                    </div>
+                    <div id="kanban-column-fechado" class="space-y-3 flex-1 overflow-y-auto custom-scrollbar"></div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- CONTENTOR DE NOTIFICAÇÕES (Substitui alerts invasivos) -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
+
+    <!-- MODAL DE INSTRUÇÕES DE EXPORTAÇÃO -->
+    <div id="help-modal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-brand-950 to-slate-900 text-white">
+                <h3 class="font-bold text-sm sm:text-base flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-brand-300"></i> Como exportar e carregar dados?
+                </h3>
+                <button onclick="toggleHelpModal()" class="text-white/80 hover:text-white hover:bg-white/10 h-7 w-7 rounded-lg flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    Siga o passo a passo simples para atualizar o seu painel interativo sempre que houver modificações na sua folha de cálculo:
+                </p>
+                <div class="space-y-3.5">
+                    <div class="flex gap-3">
+                        <div class="h-6 w-6 rounded-full bg-brand-100 text-brand-800 text-xs font-bold flex items-center justify-center shrink-0">1</div>
+                        <div>
+                            <h4 class="text-xs sm:text-sm font-bold text-slate-800">Na sua planilha de controle (Excel / Sheets)</h4>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Faça as modificações que desejar em atividades, datas limite, responsáveis ou andamento do projeto.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="h-6 w-6 rounded-full bg-brand-100 text-brand-800 text-xs font-bold flex items-center justify-center shrink-0">2</div>
+                        <div>
+                            <h4 class="text-xs sm:text-sm font-bold text-slate-800">Exportar no formato .CSV</h4>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Clique em <b>Salvar Como</b> ou <b>Fazer Download</b> e escolha a extensão <b>Valores Separados por Vírgulas (.CSV)</b>.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="h-6 w-6 rounded-full bg-brand-100 text-brand-800 text-xs font-bold flex items-center justify-center shrink-0">3</div>
+                        <div>
+                            <h4 class="text-xs sm:text-sm font-bold text-slate-800">Efetuar o Carregamento no Painel</h4>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Arraste o arquivo .CSV obtido diretamente para a área tracejada no topo deste dashboard para recalcular tudo instantaneamente!</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-amber-50 rounded-xl p-3 border border-amber-200 text-[11px] text-amber-800 flex gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-base text-amber-600 shrink-0 mt-0.5"></i>
+                    <p><b>Atenção:</b> Evite alterar os cabeçalhos originais (ÁREA, FASE, DEMANDA, ATIVIDADE, RESPONSÁVEL, DATA DE INICIO, DATA DE FIM, STATUS) de modo a garantir o correto mapeamento de dados.</p>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button onclick="toggleHelpModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition shadow-sm">
+                    Entendido, fechar!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGICA DO APLICATIVO EM JAVASCRIPT -->
+    <script>
+        // BASE DE DADOS COMPLETA DO PLANO DE AÇÃO TOCA (48 ITENS REAIS EXTRAÍDOS DA PLANILHA)
+        const DEFAULT_DATA = [
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o proprietário", "ATIVIDADE": "Definir as atividades com proprietários", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-03-19", "DATA DE FIM": "2026-04-02", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Proprietário do imóvel toca", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o proprietário", "ATIVIDADE": "Estabelecer as responsábilidades da jornada do proprietario", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-02", "DATA DE FIM": "2026-04-16", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Proprietário do imóvel toca", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o proprietário", "ATIVIDADE": "Estabelecer pontos de automações para informar o proprietarios", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-16", "DATA DE FIM": "2026-06-30", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Proprietário do imóvel toca", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o proprietário", "ATIVIDADE": "Estabelecer processo", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-06-30", "DATA DE FIM": "2026-07-31", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Proprietário do imóvel toca", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Rastreio do KSI de Leads Vendas / Locação", "ATIVIDADE": "Analisar casos", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-03-19", "DATA DE FIM": "2026-03-26", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Identificação de gargalos na triagem", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Rastreio do KSI de Leads Vendas / Locação", "ATIVIDADE": "Desenhar processo", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-03-26", "DATA DE FIM": "2026-04-09", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Identificação de gargalos na triagem", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Rastreio do KSI de Leads Vendas / Locação", "ATIVIDADE": "Alinha com as lideranças", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-09", "DATA DE FIM": "2026-04-23", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Identificação de gargalos na triagem", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Rastreio do KSI de Leads Vendas / Locação", "ATIVIDADE": "Implantar", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-23", "DATA DE FIM": "2026-04-30", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Identificação de gargalos na triagem", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Rastreio do KSI de Leads Vendas / Locação", "ATIVIDADE": "Acompanhamento", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-30", "DATA DE FIM": "2026-05-28", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Identificação de gargalos na triagem", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Esteira de locação digital sem papel", "ATIVIDADE": "Mapear as ferramentas existentes no mercado", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-10", "DATA DE FIM": "2026-04-24", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Otimização de tempo e economia de papel / Leads mais qualificados", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Esteira de locação digital sem papel", "ATIVIDADE": "Analisar os custos das ferramentas", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-24", "DATA DE FIM": "2026-05-08", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Otimização de tempo e economia de papel / Leads mais qualificados", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Esteira de locação digital sem papel", "ATIVIDADE": "Apresentar a diretoria", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-05-08", "DATA DE FIM": "2026-05-15", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Otimização de tempo e economia de papel / Leads mais qualificados", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Esteira de locação digital sem papel", "ATIVIDADE": "Implementar as ferramentas e processos", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-05-15", "DATA DE FIM": "2026-06-30", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Otimização de tempo e economia de papel / Leads mais qualificados", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Esteira de locação digital sem papel", "ATIVIDADE": "Treinar a equipe", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-06-30", "DATA DE FIM": "2026-07-15", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Otimização de tempo e economia de papel / Leads mais qualificados", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Esteira de locação digital sem papel", "ATIVIDADE": "Acompanhar e realizar melhorias", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-07-15", "DATA DE FIM": "2026-08-31", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Otimização de tempo e economia de papel / Leads mais qualificados", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o cliente locação", "ATIVIDADE": "Definir as atividades com locação", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-03-19", "DATA DE FIM": "2026-04-02", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Locatario do imóvel toca", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o cliente locação", "ATIVIDADE": "Estabelecer as responsábilidades da jornada de locação", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-02", "DATA DE FIM": "2026-04-16", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Locatario do imóvel toca", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o cliente locação", "ATIVIDADE": "Estabelecer pontos de automações para informar o locatario", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-16", "DATA DE FIM": "2026-06-30", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Locatario do imóvel toca", "Observações": "" },
+            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o cliente locação", "ATIVIDADE": "Estabelecer processo", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-06-30", "DATA DE FIM": "2026-07-31", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Locatario do imóvel toca", "Observações": "" },
+            { "ÁREA": "MARKETING", "FASE": "COMERCIAL", "DEMANDA": "Novo Site com busca inteligente de imóveis baseado no perfil comportamental do cliente.", "ATIVIDADE": "Pesquisar ferramentas / IAs de busca imobiliária.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-01", "DATA DE FIM": "2026-04-15", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de conversão de Leads e melhora na experiência do usuário.", "Observações": "" },
+            { "ÁREA": "MARKETING", "FASE": "COMERCIAL", "DEMANDA": "Novo Site com busca inteligente de imóveis baseado no perfil comportamental do cliente.", "ATIVIDADE": "Contratar a ferramenta ideal.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-16", "DATA DE FIM": "2026-05-10", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de conversão de Leads e melhora na experiência do usuário.", "Observações": "" },
+            { "ÁREA": "MARKETING", "FASE": "COMERCIAL", "DEMANDA": "Novo Site com busca inteligente de imóveis baseado no perfil comportamental do cliente.", "ATIVIDADE": "Integrar com site atual e testar usabilidade.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-05-11", "DATA DE FIM": "2026-06-05", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de conversão de Leads e melhora na experiência do usuário.", "Observações": "" },
+            { "ÁREA": "MARKETING", "FASE": "COMERCIAL", "DEMANDA": "Novo Site com busca inteligente de imóveis baseado no perfil comportamental do cliente.", "ATIVIDADE": "Lançamento oficial e monitoramento de KPIs.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-06-06", "DATA DE FIM": "2026-06-30", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de conversão de Leads e melhora na experiência do usuário.", "Observações": "" },
+            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Centralização de Atendimento (Omnichannel) com transição fluida entre canais.", "ATIVIDADE": "Mapear fluxos de atendimento de todos os departamentos.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-03-20", "DATA DE FIM": "2026-04-10", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Redução do tempo de resposta e eliminação de mensagens perdidas.", "Observações": "" },
+            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Centralização de Atendimento (Omnichannel) com transição fluida entre canais.", "ATIVIDADE": "Avaliar plataformas Omnichannel (ex: Zenvia Blip).", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-04-11", "DATA DE FIM": "2026-04-30", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Redução do tempo de resposta e eliminação de mensagens perdidas.", "Observações": "" },
+            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Centralização de Atendimento (Omnichannel) com transição fluida entre canais.", "ATIVIDADE": "Homologar plataforma escolhida e iniciar migração.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-05-01", "DATA DE FIM": "2026-05-25", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Redução do tempo de resposta e eliminação de mensagens perdidas.", "Observações": "" },
+            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Centralização de Atendimento (Omnichannel) com transição fluida entre canais.", "ATIVIDADE": "Capacitar operadores e padronizar tom de voz.", "TIPO DE ENTREGA": "Capacitação", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-05-26", "DATA DE FIM": "2026-06-15", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Redução do tempo de resposta e eliminação de mensagens perdidas.", "Observações": "" },
+            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Centralização de Atendimento (Omnichannel) com transição fluida entre canais.", "ATIVIDADE": "Acompanhar indicators de SLA de atendimento.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-06-16", "DATA DE FIM": "2026-07-15", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Redução do tempo de resposta e eliminação de mensagens perdidas.", "Observações": "" },
+            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Redesenho do Funil de Atendimento de Aluguel e Vendas com SLAs definidos por etapa.", "ATIVIDADE": "Mapear gargalos e tempos médios atuais por fase.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-03-25", "DATA DE FIM": "2026-04-15", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "SLA claro e rastreável garantindo agilidade no fechamento de contratos.", "Observações": "" },
+            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Redesenho do Funil de Atendimento de Aluguel e Vendas com SLAs definidos por etapa.", "ATIVIDADE": "Redefinir as etapas do funil com gatilhos claros.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-04-16", "DATA DE FIM": "2026-05-05", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "SLA claro e rastreável garantindo agilidade no fechamento de contratos.", "Observações": "" },
+            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Redesenho do Funil de Atendimento de Aluguel e Vendas com SLAs definidos por etapa.", "ATIVIDADE": "Implantar alertas de estouro de SLA no CRM.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-05-06", "DATA DE FIM": "2026-05-30", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "SLA claro e rastreável garantindo agilidade no fechamento de contratos.", "Observações": "" },
+            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Redesenho do Funil de Atendimento de Aluguel e Vendas com SLAs definidos por etapa.", "ATIVIDADE": "Treinar equipe de atendimento nas novas diretrizes.", "TIPO DE ENTREGA": "Capacitação", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-06-01", "DATA DE FIM": "2026-06-15", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "SLA claro e rastreável garantindo agilidade no fechamento de contratos.", "Observações": "" },
+            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Programa de Capacitação Contínua em Vendas Consultivas e Novas Ferramentas.", "ATIVIDADE": "Diagnosticar principais gaps de vendas/atendimento.", "TIPO DE ENTREGA": "Capacitação", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-04-05", "DATA DE FIM": "2026-04-20", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de ticket médio e conversão de fechamento de negócios.", "Observações": "" },
+            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Programa de Capacitação Contínua em Vendas Consultivas e Novas Ferramentas.", "ATIVIDADE": "Elaborar trilhas de aprendizagem personalizadas.", "TIPO DE ENTREGA": "Capacitação", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-04-21", "DATA DE FIM": "2026-05-15", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de ticket médio e conversão de fechamento de negócios.", "Observações": "" },
+            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Programa de Capacitação Contínua em Vendas Consultivas e Novas Ferramentas.", "ATIVIDADE": "Aplicar primeiros módulos de treinamento focado em objeções.", "TIPO DE ENTREGA": "Capacitação", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-05-16", "DATA DE FIM": "2026-06-10", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de ticket médio e conversão de fechamento de negócios.", "Observações": "" },
+            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Programa de Capacitação Contínua em Vendas Consultivas e Novas Ferramentas.", "ATIVIDADE": "Avaliar feedback e medir impacto no funil de vendas.", "TIPO DE ENTREGA": "Capacitação", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-06-11", "DATA DE FIM": "2026-07-05", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de ticket médio e conversão de fechamento de negócios.", "Observações": "" },
+            { "ÁREA": "JURÍDICO", "FASE": "PROCESSO", "DEMANDA": "Minutas Contratuais Automatizadas com assinatura eletrônica nativa via CRM.", "ATIVIDADE": "Revisar minutas padrão e simplificar textos contratuais.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-03-22", "DATA DE FIM": "2026-04-12", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Segurança jurídica combinada com agilidade extrema na assinatura.", "Observações": "" },
+            { "ÁREA": "JURÍDICO", "FASE": "PROCESSO", "DEMANDA": "Minutas Contratuais Automatizadas com assinatura eletrônica nativa via CRM.", "ATIVIDADE": "Homologar ferramenta de assinatura eletrônica integrada.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-04-13", "DATA DE FIM": "2026-04-30", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Segurança jurídica combinada com agilidade extrema na assinatura.", "Observações": "" },
+            { "ÁREA": "JURÍDICO", "FASE": "PROCESSO", "DEMANDA": "Minutas Contratuais Automatizadas com assinatura eletrônica nativa via CRM.", "ATIVIDADE": "Configurar preenchimento automático de campos do CRM.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-05-01", "DATA DE FIM": "2026-05-20", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Segurança jurídica combinada com agilidade extrema na assinatura.", "Observações": "" },
+            { "ÁREA": "JURÍDICO", "FASE": "PROCESSO", "DEMANDA": "Minutas Contratuais Automatizadas com assinatura eletrônica nativa via CRM.", "ATIVIDADE": "Lançar piloto com imobiliárias parceiras.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-05-21", "DATA DE FIM": "2026-06-15", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Segurança jurídica combinada com agilidade extrema na assinatura.", "Observações": "" },
+            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Atendimento Digital (IA) para resolução 100% automatizada de Nível 0 (boletos IR e FAQ).", "ATIVIDADE": "Mapear as perguntas mais recorrentes de clientes.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-03-15", "DATA DE FIM": "2026-03-31", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Modernização e economia no suporte telefônico.", "Observações": "" },
+            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Atendimento Digital (IA) para resolução 100% automatizada de Nível 0 (boletos IR e FAQ).", "ATIVIDADE": "Alimentar base de conhecimento da IA (FAQ).", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-04-01", "DATA DE FIM": "2026-04-20", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Autonomia total do cliente em dúvidas comuns.", "Observações": "" },
+            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Atendimento Digital (IA) para resolução 100% automatizada de Nível 0 (boletos IR e FAQ).", "ATIVIDADE": "Integrar IA com sistema financeiro para boletos.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-04-21", "DATA DE FIM": "2026-05-15", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Emissão de boletos 100% automatizada.", "Observações": "" },
+            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Atendimento Digital (IA) para resolução 100% automatizada de Nível 0 (boletos IR e FAQ).", "ATIVIDADE": "Monitorar taxa de retenção da IA sem intervenção humana.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-05-16", "DATA DE FIM": "2026-06-10", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Redução real de carga de trabalho humana.", "Observações": "" },
+            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Follow-up Automático via Bot Realmate informando o cliente proativamente a cada mudança de etapa na esteira.", "ATIVIDADE": "Mapear eventos de mudança no Kurole que geram aviso.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Ana", "DATA DE INICIO": "2026-04-10", "DATA DE FIM": "2026-04-25", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Informação proativa para o cliente.", "Observações": "" },
+            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Follow-up Automático via Bot Realmate informando o cliente proativamente a cada mudança de etapa na esteira.", "ATIVIDADE": "Redigir templates de mensagens para cada fase.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Ana", "DATA DE INICIO": "2026-04-26", "DATA DE FIM": "2026-05-10", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Comunicação clara em cada etapa do processo.", "Observações": "" },
+            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Follow-up Automático via Bot Realmate informando o cliente proativamente a cada mudança de etapa na esteira.", "ATIVIDADE": "Configurar webhooks para disparo imediato.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Ana", "DATA DE INICIO": "2026-05-11", "DATA DE FIM": "2026-06-05", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Fim da cobrança manual de status pelo cliente.", "Observações": "" },
+            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Follow-up Automático via Bot Realmate informando o cliente proativamente a cada mudança de etapa na esteira.", "ATIVIDADE": "Treinar corretores no uso do Realmate.", "TIPO DE ENTREGA": "Capacitação", "RESPONSÁVEL": "Ana", "DATA DE INICIO": "2026-06-06", "DATA DE FIM": "2026-06-25", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Garantia de que o cliente receba os disparos corretos.", "Observações": "" }
+        ];
+
+        // Estado Geral do Dashboard
+        let currentProjectData = [];
+        let filteredProjectData = [];
+        let chartInstances = {};
+        let activeStatusFilter = ""; // Status selecionado via pipeline superior
+        let activeAreaMatrixFilter = ""; // Área selecionada na matriz organizativa
+
+        window.onload = function() {
+            // Inicializa com dados padrões incorporados
+            loadDataset(DEFAULT_DATA);
+            
+            // Configura os escutadores do File Dropzone
+            setupFileHandlers();
+        };
+
+        // Carrega um conjunto de dados e reconstrói o painel
+        function loadDataset(rawRows) {
+            currentProjectData = rawRows.map(row => {
+                const normalized = {};
+                for (let key in row) {
+                    if (row.hasOwnProperty(key)) {
+                        const cleanKey = key.trim();
+                        normalized[cleanKey] = row[key] ? row[key].toString().trim() : '';
+                    }
+                }
+                
+                // Mapeia chaves alternativas para garantir compatibilidade
+                if (!normalized['ÁREA'] && normalized['AREA']) normalized['ÁREA'] = normalized['AREA'];
+                if (!normalized['STATUS'] && normalized['STATUS ']) normalized['STATUS'] = normalized['STATUS '];
+                if (!normalized['GANHO COM A DEMANDA CONCLUIDA'] && normalized['GANHO COM A  DEMANDA CONCLUIDA']) {
+                    normalized['GANHO COM A DEMANDA CONCLUIDA'] = normalized['GANHO COM A  DEMANDA CONCLUIDA'];
+                }
+                
+                return normalized;
+            }).filter(item => item['ATIVIDADE'] || item['DEMANDA']);
+            
+            // Herda demandas vazias
+            let lastDemand = "Demanda Sem Nome";
+            currentProjectData.forEach(item => {
+                if (item['DEMANDA']) {
+                    lastDemand = item['DEMANDA'];
+                } else {
+                    item['DEMANDA'] = lastDemand;
+                }
+            });
+
+            filteredProjectData = [...currentProjectData];
+
+            // Popula os seletores de filtros
+            populateFilterOptions();
+            
+            // Calcula métricas estáticas do pipeline completo (antes de qualquer filtro ativo)
+            updatePipelineCounts();
+
+            // Aplica filtros e renderiza
+            applyFilters();
+        }
+
+        // Calcula quantidades para a barra de pipeline superior (com base nos dados originais brutos)
+        function updatePipelineCounts() {
+            const counts = { Aberto: 0, Andamento: 0, Fechado: 0 };
+            currentProjectData.forEach(row => {
+                const norm = getNormalizedStatus(row['STATUS']);
+                if (counts.hasOwnProperty(norm)) {
+                    counts[norm]++;
+                }
+            });
+
+            document.getElementById('pipeline-count-all').innerText = currentProjectData.length;
+            document.getElementById('pipeline-count-aberto').innerText = counts.Aberto;
+            document.getElementById('pipeline-count-andamento').innerText = counts.Andamento;
+            document.getElementById('pipeline-count-fechado').innerText = counts.Fechado;
+        }
+
+        // Popula as opções nos dropdowns de filtragem
+        function populateFilterOptions() {
+            const areas = new Set();
+            const responsibles = new Set();
+            
+            currentProjectData.forEach(row => {
+                if (row['ÁREA']) areas.add(row['ÁREA']);
+                if (row['RESPONSÁVEL']) responsibles.add(row['RESPONSÁVEL']);
+            });
+
+            const areaSelect = document.getElementById('filter-area');
+            const respSelect = document.getElementById('filter-responsible');
+            
+            const currentArea = areaSelect.value;
+            const currentResp = respSelect.value;
+
+            areaSelect.innerHTML = '<option value="">Área: Todas</option>';
+            Array.from(areas).sort().forEach(a => {
+                areaSelect.innerHTML += `<option value="${a}">${a}</option>`;
+            });
+
+            respSelect.innerHTML = '<option value="">Responsável: Todos</option>';
+            Array.from(responsibles).sort().forEach(r => {
+                respSelect.innerHTML += `<option value="${r}">${r}</option>`;
+            });
+
+            if (areas.has(currentArea)) areaSelect.value = currentArea;
+            if (responsibles.has(currentResp)) respSelect.value = currentResp;
+        }
+
+        // Normalização de status
+        function getNormalizedStatus(statusStr) {
+            if (!statusStr) return 'Aberto';
+            const clean = statusStr.trim().toLowerCase();
+            if (clean.includes('fechad') || clean.includes('concl') || clean.includes('final') || clean.includes('done')) {
+                return 'Fechado';
+            }
+            if (clean.includes('andament') || clean.includes('exec') || clean.includes('progresso') || clean.includes('fazendo') || clean.includes('doing') || clean.includes('curso')) {
+                return 'Andamento';
+            }
+            return 'Aberto';
+        }
+
+        // CONTROLADOR DE CLIQUE NA MATRIZ DE STATUS DE PROJETO (ÁREA ORGANIZACIONAL)
+        function toggleAreaMatrixFilter(areaValue, rowId) {
+            const areaDropdown = document.getElementById('filter-area');
+            
+            if (activeAreaMatrixFilter === areaValue) {
+                // Remove o filtro ao clicar novamente
+                clearAreaMatrixFilter();
+            } else {
+                activeAreaMatrixFilter = areaValue;
+                
+                // Trata mapeamento especial de TI (Tecnologias de Informação foca no escopo tecnológico de ADM IMOVEIS)
+                if (areaValue === 'TI') {
+                    areaDropdown.value = ''; // Reseta dropdown para usar regra especial
+                } else {
+                    areaDropdown.value = areaValue;
+                }
+
+                // Atualiza o indicador de filtro ativo
+                const friendlyNames = {
+                    'COMERCIAL': 'Comercial',
+                    'MARKETING': 'Marketing',
+                    'ADM IMOVEIS': 'Administração de Imóveis',
+                    'FINANCEIRO': 'Financeiro',
+                    'RH': 'Pessoas e Cultura (RH)',
+                    'TI': 'TI / Tecnologia'
+                };
+
+                document.getElementById('matrix-active-area-name').innerText = friendlyNames[areaValue] || areaValue;
+                document.getElementById('matrix-filter-indicator').classList.remove('hidden');
+
+                // Atualiza estilos das linhas na tabela organizativa
+                updateAreaMatrixStyles();
+                
+                // Roda filtragem geral
+                applyFilters();
+                
+                showToast(`Focado na Área: ${friendlyNames[areaValue] || areaValue}`, "success");
+            }
+        }
+
+        // Limpa o filtro de Área Organizacional ativo
+        function clearAreaMatrixFilter() {
+            activeAreaMatrixFilter = "";
+            document.getElementById('filter-area').value = "";
+            document.getElementById('matrix-filter-indicator').classList.add('hidden');
+            
+            updateAreaMatrixStyles();
+            applyFilters();
+            
+            showToast("Filtro de Área removido", "success");
+        }
+
+        // Atualiza a estilização de linha ativa/inativa da Matriz de Maturidade
+        function updateAreaMatrixStyles() {
+            const rows = {
+                'COMERCIAL': 'matrix-row-comercial',
+                'MARKETING': 'matrix-row-marketing',
+                'ADM IMOVEIS': 'matrix-row-adm',
+                'FINANCEIRO': 'matrix-row-financeiro',
+                'RH': 'matrix-row-rh',
+                'TI': 'matrix-row-ti'
+            };
+
+            for (let key in rows) {
+                const el = document.getElementById(rows[key]);
+                if (el) {
+                    if (activeAreaMatrixFilter === key) {
+                        el.className = "bg-brand-50/70 border-l-4 border-brand-600 transition-all cursor-pointer font-bold";
+                    } else {
+                        el.className = "hover:bg-slate-50/80 cursor-pointer transition-colors";
+                    }
+                }
+            }
+        }
+
+        // Seleção de status via clique na barra de pipeline superior
+        function selectStatusFilter(status) {
+            activeStatusFilter = status;
+            
+            // Sincroniza o dropdown de filtro inferior de status para evitar discrepâncias
+            document.getElementById('filter-status').value = status;
+            
+            // Atualiza os estilos de destaque ativo/inativo na barra superior
+            updatePipelineStyles();
+
+            // Roda filtragem geral
+            applyFilters();
+            
+            showToast(status ? `Filtrado por status: ${status}` : "Exibindo todas as tarefas", "success");
+        }
+
+        // Sincroniza o pipeline superior quando o usuário usa o dropdown de filtro inferior
+        function syncWithDropdown() {
+            const val = document.getElementById('filter-status').value;
+            activeStatusFilter = val;
+            updatePipelineStyles();
+            applyFilters();
+        }
+
+        // Sincroniza o dropdown inferior de área com a matriz de maturidade superior
+        function syncWithDropdownArea() {
+            const val = document.getElementById('filter-area').value;
+            activeAreaMatrixFilter = val;
+            
+            if (val === '') {
+                document.getElementById('matrix-filter-indicator').classList.add('hidden');
+            } else {
+                const friendlyNames = {
+                    'COMERCIAL': 'Comercial',
+                    'MARKETING': 'Marketing',
+                    'ADM IMOVEIS': 'Administração de Imóveis'
+                };
+                document.getElementById('matrix-active-area-name').innerText = friendlyNames[val] || val;
+                document.getElementById('matrix-filter-indicator').classList.remove('hidden');
+            }
+
+            updateAreaMatrixStyles();
+            applyFilters();
+        }
+
+        // Atualiza as classes CSS das bordas e sombras do pipeline de status ativo
+        function updatePipelineStyles() {
+            const cards = {
+                '': document.getElementById('pipeline-card-all'),
+                'Aberto': document.getElementById('pipeline-card-aberto'),
+                'Andamento': document.getElementById('pipeline-card-andamento'),
+                'Fechado': document.getElementById('pipeline-card-fechado')
+            };
+
+            // Reseta todos para estilo padrão inativo
+            for (let key in cards) {
+                if (cards[key]) {
+                    cards[key].className = "cursor-pointer border-2 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between group bg-white border-slate-200 hover:shadow-sm";
+                }
+            }
+
+            // Aplica estilos customizados de destaque para o card atualmente selecionado
+            if (activeStatusFilter === '') {
+                cards[''].className = "cursor-pointer border-2 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between group bg-brand-50/50 border-brand-500 shadow-sm";
+            } else if (activeStatusFilter === 'Aberto') {
+                cards['Aberto'].className = "cursor-pointer border-2 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between group bg-amber-50/40 border-amber-500 shadow-sm";
+            } else if (activeStatusFilter === 'Andamento') {
+                cards['Andamento'].className = "cursor-pointer border-2 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between group bg-blue-50/40 border-blue-500 shadow-sm";
+            } else if (activeStatusFilter === 'Fechado') {
+                cards['Fechado'].className = "cursor-pointer border-2 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between group bg-emerald-50/40 border-emerald-500 shadow-sm";
+            }
+        }
+
+        // Aplicação de filtros combinados
+        function applyFilters() {
+            const searchText = document.getElementById('filter-search').value.toLowerCase().trim();
+            const areaDropdownValue = document.getElementById('filter-area').value;
+            const respValue = document.getElementById('filter-responsible').value;
+            const statusValue = document.getElementById('filter-status').value;
+
+            // Define qual filtro de área usar (priorizando matriz superior se ativa)
+            const activeArea = activeAreaMatrixFilter || areaDropdownValue;
+
+            filteredProjectData = currentProjectData.filter(row => {
+                const matchSearch = !searchText || 
+                    (row['DEMANDA'] && row['DEMANDA'].toLowerCase().includes(searchText)) ||
+                    (row['ATIVIDADE'] && row['ATIVIDADE'].toLowerCase().includes(searchText)) ||
+                    (row['RESPONSÁVEL'] && row['RESPONSÁVEL'].toLowerCase().includes(searchText)) ||
+                    (row['ÁREA'] && row['ÁREA'].toLowerCase().includes(searchText));
+
+                // Tratamento especial de TI: foca nas tarefas da fase de TECNOLOGIA
+                let matchArea = true;
+                if (activeArea) {
+                    if (activeArea === 'TI') {
+                        matchArea = row['FASE'] === 'TECNOLOGIA';
+                    } else {
+                        matchArea = row['ÁREA'] === activeArea;
+                    }
+                }
+
+                const matchResp = !respValue || row['RESPONSÁVEL'] === respValue;
+                
+                const normStatus = getNormalizedStatus(row['STATUS']);
+                const matchStatus = !statusValue || normStatus === statusValue;
+
+                return matchSearch && matchArea && matchResp && matchStatus;
+            });
+
+            updateDashboard();
+        }
+
+        // Limpa todos os filtros ativos de uma vez só
+        function clearFilters() {
+            document.getElementById('filter-search').value = '';
+            document.getElementById('filter-area').value = '';
+            document.getElementById('filter-responsible').value = '';
+            document.getElementById('filter-status').value = '';
+            
+            activeStatusFilter = '';
+            activeAreaMatrixFilter = '';
+            document.getElementById('matrix-filter-indicator').classList.add('hidden');
+            
+            updatePipelineStyles();
+            updateAreaMatrixStyles();
+
+            filteredProjectData = [...currentProjectData];
+            updateDashboard();
+            showToast("Todos os filtros foram limpos!", "success");
+        }
+
+        // Executa o recalculamento e renderização de todas as telas
+        function updateDashboard() {
+            calculateKPIs();
+            renderDemandsView();
+            renderGanttView();
+            renderCharts();
+            renderKanbanView();
+            
+            // Contagem dos dados filtrados
+            document.getElementById('filtered-count').innerText = filteredProjectData.length;
+            document.getElementById('total-count').innerText = currentProjectData.length;
+        }
+
+        // Calcula indicadores chave (KPIs)
+        function calculateKPIs() {
+            const totalTasks = filteredProjectData.length;
+            
+            // Evita divisões por zero
+            if (totalTasks === 0) {
+                document.getElementById('stat-progress-percent').innerText = "0%";
+                document.getElementById('stat-progress-bar').style.width = "0%";
+                document.getElementById('stat-total-demands').innerText = "0";
+                document.getElementById('stat-overdue-tasks').innerText = "0";
+                return;
+            }
+
+            // Atividades por Status
+            const completedTasks = filteredProjectData.filter(t => getNormalizedStatus(t['STATUS']) === 'Fechado').length;
+            const progressPercent = Math.round((completedTasks / totalTasks) * 100);
+
+            // Total de demandas únicas na seleção atual
+            const uniqueDemands = new Set(filteredProjectData.map(t => t['DEMANDA']).filter(Boolean));
+            
+            // Cálculo de tarefas atrasadas (Prazo final anterior ao dia de hoje e status não finalizado)
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            const overdueTasks = filteredProjectData.filter(t => {
+                const status = getNormalizedStatus(t['STATUS']);
+                if (status === 'Fechado') return false;
+                
+                if (t['DATA DE FIM']) {
+                    const endDate = new Date(t['DATA DE FIM']);
+                    return !isNaN(endDate.getTime()) && endDate < today;
+                }
+                return false;
+            }).length;
+
+            // Atualiza Interface
+            document.getElementById('stat-progress-percent').innerText = `${progressPercent}%`;
+            document.getElementById('stat-progress-bar').style.width = `${progressPercent}%`;
+            
+            document.getElementById('stat-total-demands').innerText = uniqueDemands.size;
+            document.getElementById('stat-overdue-tasks').innerText = overdueTasks;
+        }
+
+        // Auxiliar: Formatação de datas
+        function formatDateString(dateStr) {
+            if (!dateStr) return 'N/A';
+            const parsed = new Date(dateStr);
+            if (isNaN(parsed.getTime())) return dateStr;
+            // Força UTC local se a data for apenas YYYY-MM-DD
+            if (dateStr.length === 10) {
+                const parts = dateStr.split('-');
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return parsed.toLocaleDateString('pt-BR');
+        }
+
+        // RENDERIZA ABA 1: AGRUPAMENTO POR DEMANDA (Accordion principal)
+        function renderDemandsView() {
+            const container = document.getElementById('demands-container');
+            container.innerHTML = '';
+
+            if (filteredProjectData.length === 0) {
+                document.getElementById('empty-state').classList.remove('hidden');
+                return;
+            } else {
+                document.getElementById('empty-state').classList.add('hidden');
+            }
+
+            const demandsGroup = groupDataByDemand();
+
+            let demandIndex = 0;
+            // Renderiza cada grupo como um card com acordeão
+            for (let name in demandsGroup) {
+                const group = demandsGroup[name];
+                const totalActs = group.activities.length;
+                const closedActs = group.activities.filter(a => getNormalizedStatus(a['STATUS']) === 'Fechado').length;
+                const progress = totalActs > 0 ? Math.round((closedActs / totalActs) * 100) : 0;
+                
+                // Determinando o status geral da Demanda com base na composição
+                let demandStatusBadge = '';
+                if (progress === 100) {
+                    demandStatusBadge = `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full border border-emerald-200 shadow-sm flex items-center gap-1"><i class="fa-solid fa-check-double text-[9px]"></i> Concluída</span>`;
+                } else if (progress > 0) {
+                    demandStatusBadge = `<span class="px-2.5 py-1 bg-blue-50 text-brand-800 text-[10px] font-bold rounded-full border border-blue-200 shadow-sm flex items-center gap-1"><i class="fa-solid fa-spinner animate-spin text-[9px]"></i> Em Execução</span>`;
+                } else {
+                    demandStatusBadge = `<span class="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-full border border-slate-200 shadow-sm">A Iniciar</span>`;
+                }
+
+                // Linha de tempo unificada formatada
+                const timelineStr = (group.earliestStart || group.latestEnd) 
+                    ? `${group.earliestStart ? group.earliestStart.toLocaleDateString('pt-BR') : '?'} até ${group.latestEnd ? group.latestEnd.toLocaleDateString('pt-BR') : '?'}`
+                    : 'Sem cronograma definido';
+
+                // Lista de responsáveis únicos do grupo
+                const respList = group.responsibles.size > 0 
+                    ? Array.from(group.responsibles).join(', ') 
+                    : 'Sem responsável definido';
+
+                const accordionId = `demand-collapse-${demandIndex}`;
+                
+                const cardHTML = `
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-brand-300 transition-all duration-300 overflow-hidden">
+                        
+                        <!-- Cabeçalho do Acordeão -->
+                        <div onclick="toggleAccordion('${accordionId}')" class="p-4 sm:p-5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 cursor-pointer hover:bg-brand-50/10 transition-colors">
+                            
+                            <!-- Bloco Esquerdo: Demanda, Área e Progresso -->
+                            <div class="space-y-2 flex-1 min-w-0">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="px-2.5 py-0.5 bg-brand-900 text-white text-[9px] font-extrabold rounded uppercase tracking-wider">${group.area}</span>
+                                    ${group.phase ? `<span class="px-2.5 py-0.5 bg-slate-100 text-slate-600 text-[9px] font-extrabold rounded uppercase tracking-wider">${group.phase}</span>` : ''}
+                                    ${demandStatusBadge}
+                                </div>
+                                <h3 class="text-sm sm:text-base font-black text-slate-900 leading-snug break-words">
+                                    ${group.name}
+                                </h3>
+                                ${group.gain ? `
+                                    <p class="text-[11px] text-brand-800 font-bold flex items-center gap-1.5 bg-brand-50 py-1 px-3 rounded-lg border border-brand-100/60 inline-flex">
+                                        <i class="fa-solid fa-gift text-brand-600"></i> <span><b>Ganho da entrega:</b> ${group.gain}</span>
+                                    </p>
+                                ` : ''}
+                            </div>
+
+                            <!-- Bloco Direito: Detalhes, Barra de Progresso e Toggle -->
+                            <div class="w-full lg:w-auto flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end gap-3 sm:gap-6 lg:gap-1.5 shrink-0 border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-100">
+                                <div class="space-y-1 w-full sm:w-40 lg:w-36">
+                                    <div class="flex justify-between text-xs font-bold text-slate-500">
+                                        <span>Progresso</span>
+                                        <span class="text-brand-800">${progress}%</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-1.5">
+                                        <div class="bg-brand-600 h-1.5 rounded-full transition-all duration-350" style="width: ${progress}%"></div>
+                                    </div>
+                                    <div class="text-[9px] text-slate-400 text-right font-semibold">${closedActs} de ${totalActs} concluídas</div>
+                                </div>
+
+                                <div class="text-xs text-left lg:text-right space-y-0.5 font-semibold text-slate-400">
+                                    <div class="flex items-center gap-1.5 lg:justify-end"><i class="fa-regular fa-calendar"></i> <span>${timelineStr}</span></div>
+                                    <div class="truncate max-w-[200px] flex items-center gap-1.5 lg:justify-end" title="${respList}"><i class="fa-regular fa-user"></i> <span>${respList}</span></div>
+                                </div>
+
+                                <button class="hidden sm:flex text-slate-400 hover:text-slate-600 h-8 w-8 rounded-full hover:bg-slate-100 items-center justify-center transition">
+                                    <i class="fa-solid fa-chevron-down transform transition-transform" id="icon-${accordionId}"></i>
+                                </button>
+                            </div>
+
+                        </div>
+
+                        <!-- Detalhes do Acordeão (Tabela de Atividades Internas) -->
+                        <div id="${accordionId}" class="hidden border-t border-slate-100 bg-slate-50/50 overflow-x-auto custom-scrollbar">
+                            <div class="p-4 sm:p-5">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="border-b border-slate-200 text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                                            <th class="pb-2 pl-2">Atividade</th>
+                                            <th class="pb-2">Responsável</th>
+                                            <th class="pb-2">Início</th>
+                                            <th class="pb-2">Previsão Fim</th>
+                                            <th class="pb-2">Tipo de Entrega</th>
+                                            <th class="pb-2 text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 text-xs text-slate-700">
+                                        ${group.activities.map(act => {
+                                            const normalizedStatus = getNormalizedStatus(act['STATUS']);
+                                            let statusBadgeClass = '';
+                                            let rowHighlight = '';
+                                            
+                                            // Cores baseadas no status
+                                            if (normalizedStatus === 'Fechado') {
+                                                statusBadgeClass = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+                                            } else if (normalizedStatus === 'Andamento') {
+                                                statusBadgeClass = 'bg-blue-50 text-brand-800 border-blue-200';
+                                            } else {
+                                                statusBadgeClass = 'bg-amber-50 text-amber-800 border-amber-200';
+                                            }
+
+                                            // Identificação de prazos estourados
+                                            const today = new Date();
+                                            today.setHours(0,0,0,0);
+                                            let isOverdue = false;
+                                            if (normalizedStatus !== 'Fechado' && act['DATA DE FIM']) {
+                                                const endDate = new Date(act['DATA DE FIM']);
+                                                if (!isNaN(endDate.getTime()) && endDate < today) {
+                                                    isOverdue = true;
+                                                    rowHighlight = 'bg-rose-50/30';
+                                                }
+                                            }
+
+                                            return `
+                                                <tr class="hover:bg-slate-100/50 transition-colors ${rowHighlight}">
+                                                    <td class="py-3 pl-2 max-w-[280px] sm:max-w-[400px]">
+                                                        <div class="font-bold text-slate-900 leading-relaxed">${act['ATIVIDADE'] || 'Atividade sem nome'}</div>
+                                                        ${act['Observações'] ? `<div class="text-[10px] text-slate-400 font-medium italic mt-0.5"><i class="fa-regular fa-comment-dots text-slate-300"></i> ${act['Observações']}</div>` : ''}
+                                                    </td>
+                                                    <td class="py-3">
+                                                        <div class="flex items-center gap-1.5 font-semibold text-slate-600">
+                                                            <div class="h-6 w-6 rounded-full bg-brand-100 text-brand-800 text-[9px] font-bold flex items-center justify-center border border-brand-200">
+                                                                ${act['RESPONSÁVEL'] ? act['RESPONSÁVEL'].substring(0, 2).toUpperCase() : '?'}
+                                                            </div>
+                                                            <span>${act['RESPONSÁVEL'] || 'Não designado'}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="py-3 text-slate-500 font-medium">${formatDateString(act['DATA DE INICIO'])}</td>
+                                                    <td class="py-3 text-slate-500 font-medium">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <span>${formatDateString(act['DATA DE FIM'])}</span>
+                                                            ${isOverdue ? `<span class="px-1.5 py-0.5 bg-rose-100 text-rose-800 text-[8px] font-black rounded uppercase animate-pulse-subtle">Atraso</span>` : ''}
+                                                        </div>
+                                                    </td>
+                                                    <td class="py-3">
+                                                        <span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold rounded">${act['TIPO DE ENTREGA'] || 'Padrão'}</span>
+                                                    </td>
+                                                    <td class="py-3 text-center">
+                                                        <span class="inline-block px-2 py-1 text-[10px] font-extrabold rounded-lg border ${statusBadgeClass}">
+                                                            ${act['STATUS'] || 'Aberto'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+                demandIndex++;
+            }
+        }
+
+        // RENDERIZA ABA DE CRONOGRAMA DE ATIVIDADES (GANTT)
+        function renderGanttView() {
+            const container = document.getElementById('gantt-rows');
+            container.innerHTML = '';
+
+            const demands = groupDataByDemand();
+            
+            // Definição da janela temporal do projeto (Março a Agosto de 2026)
+            const rangeStart = new Date('2026-03-01');
+            const rangeEnd = new Date('2026-08-31');
+            const totalDays = (rangeEnd - rangeStart) / (24 * 3600 * 1000) + 1;
+
+            let hasRows = false;
+
+            for (let name in demands) {
+                hasRows = true;
+                const group = demands[name];
+                
+                const totalActs = group.activities.length;
+                const completedActs = group.activities.filter(a => getNormalizedStatus(a['STATUS']) === 'Fechado').length;
+                const progressPct = totalActs > 0 ? Math.round((completedActs / totalActs) * 100) : 0;
+
+                let leftPercent = 10;
+                let widthPercent = 80;
+
+                if (group.earliestStart && group.latestEnd) {
+                    const startDiff = (group.earliestStart - rangeStart) / (24 * 3600 * 1000);
+                    const duration = (group.latestEnd - group.earliestStart) / (24 * 3600 * 1000) + 1;
+                    
+                    leftPercent = Math.max(0, Math.min(100, (startDiff / totalDays) * 100));
+                    widthPercent = Math.max(4, Math.min(100 - leftPercent, (duration / totalDays) * 100));
+                }
+
+                const rowHTML = `
+                    <div class="flex items-center text-xs py-3.5 hover:bg-slate-50 transition-colors">
+                        <!-- Identificação da Demanda -->
+                        <div class="w-1/3 pr-4 pl-4 border-r border-slate-150">
+                            <div class="font-extrabold text-slate-800 truncate" title="${group.name}">${group.name}</div>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-[9px] font-black text-brand-700 uppercase tracking-wider">${group.area}</span>
+                                <span class="text-[9px] text-slate-400 font-semibold">• ${totalActs} atividades (${progressPct}% concluído)</span>
+                            </div>
+                        </div>
+
+                        <!-- Barra de Duração Relativa no Eixo de Tempo -->
+                        <div class="w-2/3 relative h-8 flex items-center bg-slate-50/30">
+                            <div class="absolute h-4.5 rounded-lg bg-brand-100 border border-brand-200 shadow-sm flex overflow-hidden cursor-pointer group"
+                                 style="left: ${leftPercent}%; width: ${widthPercent}%;"
+                                 title="Período: ${group.earliestStart ? group.earliestStart.toLocaleDateString('pt-BR') : '?'} - ${group.latestEnd ? group.latestEnd.toLocaleDateString('pt-BR') : '?'}">
+                                
+                                <!-- Sobreposição da Barra de Progresso Realizado -->
+                                <div class="bg-brand-800 h-full rounded-l-lg transition-all duration-500" style="width: ${progressPct}%"></div>
+                                
+                                <!-- Tooltip Personalizado ao passar o mouse -->
+                                <div class="absolute hidden group-hover:block bottom-full mb-1.5 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white font-semibold text-[10px] px-2 py-1 rounded shadow-lg z-10 whitespace-nowrap">
+                                    ${progressPct}% Concluído | ${group.earliestStart ? group.earliestStart.toLocaleDateString('pt-BR') : 'Início N/A'} a ${group.latestEnd ? group.latestEnd.toLocaleDateString('pt-BR') : 'Fim N/A'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += rowHTML;
+            }
+
+            if (!hasRows) {
+                container.innerHTML = `<div class="p-6 text-center text-slate-400 font-semibold">Sem dados cronológicos para apresentar com estes filtros.</div>`;
+            }
+        }
+
+        // Agrupamento auxiliar por demanda
+        function groupDataByDemand() {
+            const demandsGroup = {};
+            filteredProjectData.forEach((row, index) => {
+                const demName = row['DEMANDA'] || "Demanda Sem Título";
+                if (!demandsGroup[demName]) {
+                    demandsGroup[demName] = {
+                        name: demName,
+                        area: row['ÁREA'] || 'Geral',
+                        phase: row['FASE'] || '',
+                        gain: row['GANHO COM A DEMANDA CONCLUIDA'] || '',
+                        activities: [],
+                        responsibles: new Set(),
+                        earliestStart: null,
+                        latestEnd: null
+                    };
+                }
+                demandsGroup[demName].activities.push({ ...row, originalIndex: index });
+                if (row['RESPONSÁVEL']) {
+                    demandsGroup[demName].responsibles.add(row['RESPONSÁVEL']);
+                }
+
+                if (row['DATA DE INICIO']) {
+                    const dStart = new Date(row['DATA DE INICIO']);
+                    if (!isNaN(dStart.getTime())) {
+                        if (!demandsGroup[demName].earliestStart || dStart < demandsGroup[demName].earliestStart) {
+                            demandsGroup[demName].earliestStart = dStart;
+                        }
+                    }
+                }
+                if (row['DATA DE FIM']) {
+                    const dEnd = new Date(row['DATA DE FIM']);
+                    if (!isNaN(dEnd.getTime())) {
+                        if (!demandsGroup[demName].latestEnd || dEnd > demandsGroup[demName].latestEnd) {
+                            demandsGroup[demName].latestEnd = dEnd;
+                        }
+                    }
+                }
+            });
+            return demandsGroup;
+        }
+
+        // CONTROLADOR DO ACORDEÃO
+        function toggleAccordion(id) {
+            const panel = document.getElementById(id);
+            const icon = document.getElementById(`icon-${id}`);
+            
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                if (icon) icon.classList.add('rotate-180');
+            } else {
+                panel.classList.add('hidden');
+                if (icon) icon.classList.remove('rotate-180');
+            }
+        }
+
+        // TROCA DE ABAS
+        function switchTab(tabId) {
+            // Esconde todas as abas
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-brand-600', 'text-brand-800', 'font-black');
+                btn.classList.add('border-transparent', 'text-slate-500');
+            });
+
+            // Mostra a aba clicada
+            document.getElementById(`${tabId}-content`).classList.remove('hidden');
+            
+            const clickedBtn = document.getElementById(`btn-${tabId}`);
+            clickedBtn.classList.remove('border-transparent', 'text-slate-500');
+            clickedBtn.classList.add('border-brand-600', 'text-brand-800', 'font-black');
+
+            // Recria ou atualiza gráficos se mudar para a aba de gráficos
+            if (tabId === 'dashboard-tab') {
+                setTimeout(renderCharts, 50);
+            } else if (tabId === 'cronograma-tab') {
+                setTimeout(renderGanttView, 50);
+            }
+        }
+
+        // GERENCIA OS GRÁFICOS DO PAINEL (ABA 2)
+        function renderCharts() {
+            if (document.getElementById('dashboard-tab-content').classList.contains('hidden')) return;
+
+            // Destrói instâncias anteriores para evitar bugs visuais ao passar o mouse
+            for (let id in chartInstances) {
+                if (chartInstances[id]) chartInstances[id].destroy();
+            }
+
+            // --- 1. GRÁFICO DE STATUS (DONUT) ---
+            const statusCounts = { Aberto: 0, Andamento: 0, Fechado: 0 };
+            filteredProjectData.forEach(row => {
+                const norm = getNormalizedStatus(row['STATUS']);
+                statusCounts[norm]++;
+            });
+
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            chartInstances['statusChart'] = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Aberto', 'Em Andamento', 'Fechado'],
+                    datasets: [{
+                        data: [statusCounts.Aberto, statusCounts.Andamento, statusCounts.Fechado],
+                        backgroundColor: ['#f59e0b', '#2563eb', '#10b981'],
+                        hoverOffset: 4,
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            // Cria Legenda do Donut detalhada
+            const total = filteredProjectData.length;
+            const legendContainer = document.getElementById('status-legend');
+            legendContainer.innerHTML = `
+                <div class="flex justify-between items-center text-xs border-b border-slate-100 pb-1.5">
+                    <span class="flex items-center gap-2 text-slate-500 font-semibold"><span class="h-2.5 w-2.5 bg-amber-500 rounded-full inline-block"></span> Aberto</span>
+                    <span class="font-extrabold text-slate-800">${statusCounts.Aberto} (${total > 0 ? Math.round(statusCounts.Aberto/total*100) : 0}%)</span>
+                </div>
+                <div class="flex justify-between items-center text-xs border-b border-slate-100 pb-1.5">
+                    <span class="flex items-center gap-2 text-slate-500 font-semibold"><span class="h-2.5 w-2.5 bg-blue-500 rounded-full inline-block"></span> Em Andamento</span>
+                    <span class="font-extrabold text-slate-800">${statusCounts.Andamento} (${total > 0 ? Math.round(statusCounts.Andamento/total*100) : 0}%)</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="flex items-center gap-2 text-slate-500 font-semibold"><span class="h-2.5 w-2.5 bg-emerald-500 rounded-full inline-block"></span> Fechado / Concluído</span>
+                    <span class="font-extrabold text-slate-800">${statusCounts.Fechado} (${total > 0 ? Math.round(statusCounts.Fechado/total*100) : 0}%)</span>
+                </div>
+            `;
+
+            // --- 2. GRÁFICO PROGRESSO DE DEMANDAS (BARRA HORIZONTAL) ---
+            const demandsGroup = groupDataByDemand();
+            const demandLabels = [];
+            const demandProgress = [];
+            
+            for (let name in demandsGroup) {
+                const acts = demandsGroup[name].activities;
+                const closed = acts.filter(a => getNormalizedStatus(a['STATUS']) === 'Fechado').length;
+                const pct = Math.round((closed / acts.length) * 100);
+                
+                // Encurtar labels muito longas para caber no gráfico
+                const shortName = name.length > 30 ? name.substring(0, 30) + '...' : name;
+                demandLabels.push(shortName);
+                demandProgress.push(pct);
+            }
+
+            const ctxProgress = document.getElementById('progressChart').getContext('2d');
+            chartInstances['progressChart'] = new Chart(ctxProgress, {
+                type: 'bar',
+                data: {
+                    labels: demandLabels,
+                    datasets: [{
+                        label: '% Concluído',
+                        data: demandProgress,
+                        backgroundColor: '#1d4ed8', // Azul Escuro Toca
+                        borderRadius: 6,
+                        barThickness: 14
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { max: 100, min: 0, grid: { color: '#f8fafc' }, ticks: { font: { size: 10, weight: 'bold' } } },
+                        y: { grid: { display: false }, ticks: { font: { size: 10, weight: 'bold' } } }
+                    }
+                }
+            });
+
+            // --- 3. GRÁFICO ATIVIDADES POR RESPONSÁVEL ---
+            const respCounts = {};
+            filteredProjectData.forEach(row => {
+                const resp = row['RESPONSÁVEL'] || "Não Designado";
+                respCounts[resp] = (respCounts[resp] || 0) + 1;
+            });
+
+            const ctxResp = document.getElementById('responsibleChart').getContext('2d');
+            chartInstances['responsibleChart'] = new Chart(ctxResp, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(respCounts),
+                    datasets: [{
+                        label: 'Total de Atividades',
+                        data: Object.values(respCounts),
+                        backgroundColor: '#6366f1',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { precision: 0 } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // --- 4. GRÁFICO ATIVIDADES POR ÁREA ---
+            const areaCounts = {};
+            filteredProjectData.forEach(row => {
+                const area = row['ÁREA'] || "Não Definido";
+                areaCounts[area] = (areaCounts[area] || 0) + 1;
+            });
+
+            const ctxArea = document.getElementById('areaChart').getContext('2d');
+            chartInstances['areaChart'] = new Chart(ctxArea, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(areaCounts),
+                    datasets: [{
+                        label: 'Total de Atividades',
+                        data: Object.values(areaCounts),
+                        backgroundColor: '#0f172a',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { precision: 0 } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // RENDENRIZA ABA 3: KANBAN DA ESTEIRA
+        function renderKanbanView() {
+            const cols = {
+                Aberto: document.getElementById('kanban-column-aberto'),
+                Andamento: document.getElementById('kanban-column-andamento'),
+                Fechado: document.getElementById('kanban-column-fechado')
+            };
+
+            // Reseta conteúdo
+            for (let key in cols) {
+                cols[key].innerHTML = '';
+            }
+
+            const counts = { Aberto: 0, Andamento: 0, Fechado: 0 };
+
+            filteredProjectData.forEach(task => {
+                const status = getNormalizedStatus(task['STATUS']);
+                counts[status]++;
+
+                const taskCardHTML = `
+                    <div class="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200 hover:shadow-md hover:border-brand-200 transition-all space-y-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="px-2.5 py-0.5 bg-brand-50 text-brand-800 text-[9px] font-extrabold rounded uppercase">${task['ÁREA'] || 'Área'}</span>
+                            <span class="text-[10px] text-slate-400 font-bold">${formatDateString(task['DATA DE FIM'])}</span>
+                        </div>
+                        
+                        <div class="space-y-1">
+                            <h4 class="font-extrabold text-slate-900 text-xs leading-normal line-clamp-3">${task['ATIVIDADE'] || 'Atividade'}</h4>
+                            <p class="text-[10px] text-slate-400 font-medium truncate" title="Demanda: ${task['DEMANDA']}"><i class="fa-solid fa-folder-open text-slate-300"></i> ${task['DEMANDA']}</p>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100 gap-2">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <div class="h-5.5 w-5.5 rounded-full bg-brand-100 text-brand-800 text-[8px] font-black flex items-center justify-center shrink-0 border border-brand-200">
+                                    ${task['RESPONSÁVEL'] ? task['RESPONSÁVEL'].substring(0, 2).toUpperCase() : '?'}
+                                </div>
+                                <span class="text-[10px] text-slate-500 font-bold truncate">${task['RESPONSÁVEL'] || 'Não designado'}</span>
+                            </div>
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider shrink-0">${task['TIPO DE ENTREGA'] || ''}</span>
+                        </div>
+                    </div>
+                `;
+
+                if (cols[status]) {
+                    cols[status].innerHTML += taskCardHTML;
+                }
+            });
+
+            // Atualiza contadores do kanban
+            document.getElementById('kanban-count-aberto').innerText = counts.Aberto;
+            document.getElementById('kanban-count-andamento').innerText = counts.Andamento;
+            document.getElementById('kanban-count-fechado').innerText = counts.Fechado;
+
+            // Tratamento de colunas vazias
+            for (let status in cols) {
+                if (counts[status] === 0) {
+                    cols[status].innerHTML = `
+                        <div class="h-32 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-400">
+                            <i class="fa-solid fa-folder-open mb-1 text-sm"></i>
+                            <span class="text-[10px] font-bold">Nenhum item nesta fase</span>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // GERENCIADORES DO DROPZONE DE ARQUIVO CSV
+        function setupFileHandlers() {
+            const dropzone = document.getElementById('dropzone');
+            const fileInput = document.getElementById('csv-file-input');
+
+            // Drag over effects
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('border-brand-500', 'bg-brand-50/20');
+            });
+
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('border-brand-500', 'bg-brand-50/20');
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-brand-500', 'bg-brand-50/20');
+                
+                const file = e.dataTransfer.files[0];
+                if (file) handleCSVFile(file);
+            });
+
+            // File selection
+            fileInput.addEventListener('change', () => {
+                const file = fileInput.files[0];
+                if (file) handleCSVFile(file);
+            });
+        }
+
+        // Processamento do arquivo de texto carregado
+        function handleCSVFile(file) {
+            if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+                showToast('Aviso: Certifique-se de carregar um arquivo com extensão .CSV para que o dashboard seja atualizado.', 'error');
+                return;
+            }
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        // Salva dados
+                        loadDataset(results.data);
+                        
+                        // Atualiza data de modificação
+                        const now = new Date();
+                        document.getElementById('update-timestamp').innerText = `Atualizado às ${now.toLocaleTimeString('pt-BR')} de hoje`;
+                        
+                        // Mostrar Feedback de Sucesso
+                        const feedback = document.getElementById('upload-feedback');
+                        feedback.classList.remove('hidden');
+                        setTimeout(() => feedback.classList.add('hidden'), 5000);
+                        
+                        showToast("Dados recarregados com sucesso!", "success");
+                    } else {
+                        showToast('Não foi possível ler dados válidos do arquivo CSV.', 'error');
+                    }
+                },
+                error: function(err) {
+                    console.error("Erro PapaParse:", err);
+                    showToast("Erro crítico ao processar o arquivo de dados.", "error");
+                }
+            });
+        }
+
+        // SISTEMA DE TOASTS/NOTIFICAÇÕES DA INTERFACE
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `p-4 rounded-xl shadow-lg border text-xs font-bold flex items-center gap-2 transition-all duration-300 transform translate-y-2 opacity-0`;
+            
+            if (type === 'success') {
+                toast.className += ' bg-blue-50 text-brand-950 border-blue-200';
+                toast.innerHTML = `<i class="fa-solid fa-circle-check text-brand-600 text-sm"></i> <span>${message}</span>`;
+            } else {
+                toast.className += ' bg-rose-50 text-rose-950 border-rose-200';
+                toast.innerHTML = `<i class="fa-solid fa-circle-exclamation text-rose-600 text-sm"></i> <span>${message}</span>`;
+            }
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // Abre / Fecha modal de ajuda
+        function toggleHelpModal() {
+            const modal = document.getElementById('help-modal');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
