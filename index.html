@@ -101,32 +101,22 @@
     <main class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-6">
 
         <!-- ÁREA DE UPLOAD E ATUALIZAÇÃO -->
+        <!-- ÁREA DE ATUALIZAÇÃO -->
         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="p-5 sm:p-6 bg-gradient-to-r from-brand-50/50 via-slate-50 to-transparent border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 class="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
-                        <i class="fa-solid fa-cloud-arrow-up text-brand-700"></i> Atualizar Dados do Painel
+                        <i class="fa-solid fa-cloud text-brand-700"></i> Dados carregados do Google Sheets
                     </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Sempre que atualizar sua planilha no Excel ou Google Sheets, salve-a como <b>.CSV</b> e arraste-a aqui.</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Os dados são atualizados automaticamente a cada 5 minutos a partir da planilha online.</p>
                 </div>
-                <div id="upload-feedback" class="hidden px-3 py-1 bg-brand-100 text-brand-900 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-brand-200">
-                    <i class="fa-solid fa-circle-check text-brand-700"></i> Planilha processada com sucesso!
-                </div>
-            </div>
-            
-            <div class="p-5">
-                <!-- Dropzone de arquivo -->
-                <div id="dropzone" class="border-2 border-dashed border-slate-200 hover:border-brand-500 bg-slate-50 hover:bg-brand-50/10 rounded-xl p-6 text-center cursor-pointer transition-all relative group">
-                    <input type="file" id="csv-file-input" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                    <div class="space-y-2">
-                        <div class="mx-auto h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 group-hover:scale-105 transition-transform">
-                            <i class="fa-solid fa-file-excel text-lg"></i>
-                        </div>
-                        <div class="space-y-0.5">
-                            <p class="text-xs sm:text-sm font-bold text-slate-700">Arraste seu arquivo <span class="text-brand-700">CSV</span> aqui ou <span class="text-brand-700 underline">clique para procurar</span></p>
-                            <p class="text-[11px] text-slate-400">Certifique-se de que o arquivo contém as colunas: ÁREA, DEMANDA, ATIVIDADE, RESPONSÁVEL, STATUS, etc.</p>
-                        </div>
+                <div class="flex items-center gap-3">
+                    <div id="upload-feedback" class="hidden px-3 py-1 bg-brand-100 text-brand-900 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-brand-200">
+                        <i class="fa-solid fa-circle-check text-brand-700"></i> Dados atualizados!
                     </div>
+                    <button onclick="carregarDoSheets()" class="bg-brand-700 hover:bg-brand-800 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition shadow-sm">
+                        <i class="fa-solid fa-rotate"></i> Atualizar agora
+                    </button>
                 </div>
             </div>
         </section>
@@ -718,56 +708,6 @@
     <!-- LOGICA DO APLICATIVO EM JAVASCRIPT -->
     <script>
         // BASE DE DADOS COMPLETA DO PLANO DE AÇÃO TOCA (48 ITENS REAIS EXTRAÍDOS DA PLANILHA)
-        const DEFAULT_DATA = [
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o proprietário", "ATIVIDADE": "Definir as atividades com proprietários", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-03-19", "DATA DE FIM": "2026-04-02", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Proprietário do imóvel toca", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o proprietário", "ATIVIDADE": "Estabelecer as responsábilidades da jornada do proprietario", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-02", "DATA DE FIM": "2026-04-16", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Proprietário do imóvel toca", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o proprietário", "ATIVIDADE": "Estabelecer pontos de automações para informar o proprietarios", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-16", "DATA DE FIM": "2026-06-30", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Proprietário do imóvel toca", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o proprietário", "ATIVIDADE": "Estabelecer processo", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-06-30", "DATA DE FIM": "2026-07-31", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Proprietário do imóvel toca", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Rastreio do KSI de Leads Vendas / Locação", "ATIVIDADE": "Analisar casos", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-03-19", "DATA DE FIM": "2026-03-26", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Identificação de gargalos na triagem", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Rastreio do KSI de Leads Vendas / Locação", "ATIVIDADE": "Desenhar processo", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-03-26", "DATA DE FIM": "2026-04-09", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Identificação de gargalos na triagem", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Rastreio do KSI de Leads Vendas / Locação", "ATIVIDADE": "Alinha com as lideranças", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-09", "DATA DE FIM": "2026-04-23", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Identificação de gargalos na triagem", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Rastreio do KSI de Leads Vendas / Locação", "ATIVIDADE": "Implantar", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-23", "DATA DE FIM": "2026-04-30", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Identificação de gargalos na triagem", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Rastreio do KSI de Leads Vendas / Locação", "ATIVIDADE": "Acompanhamento", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-30", "DATA DE FIM": "2026-05-28", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Identificação de gargalos na triagem", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Esteira de locação digital sem papel", "ATIVIDADE": "Mapear as ferramentas existentes no mercado", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-10", "DATA DE FIM": "2026-04-24", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Otimização de tempo e economia de papel / Leads mais qualificados", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Esteira de locação digital sem papel", "ATIVIDADE": "Analisar os custos das ferramentas", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-24", "DATA DE FIM": "2026-05-08", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Otimização de tempo e economia de papel / Leads mais qualificados", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Esteira de locação digital sem papel", "ATIVIDADE": "Apresentar a diretoria", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-05-08", "DATA DE FIM": "2026-05-15", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Otimização de tempo e economia de papel / Leads mais qualificados", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Esteira de locação digital sem papel", "ATIVIDADE": "Implementar as ferramentas e processos", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-05-15", "DATA DE FIM": "2026-06-30", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Otimização de tempo e economia de papel / Leads mais qualificados", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Esteira de locação digital sem papel", "ATIVIDADE": "Treinar a equipe", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-06-30", "DATA DE FIM": "2026-07-15", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Otimização de tempo e economia de papel / Leads mais qualificados", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Esteira de locação digital sem papel", "ATIVIDADE": "Acompanhar e realizar melhorias", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-07-15", "DATA DE FIM": "2026-08-31", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Otimização de tempo e economia de papel / Leads mais qualificados", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o cliente locação", "ATIVIDADE": "Definir as atividades com locação", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-03-19", "DATA DE FIM": "2026-04-02", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Locatario do imóvel toca", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o cliente locação", "ATIVIDADE": "Estabelecer as responsábilidades da jornada de locação", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-02", "DATA DE FIM": "2026-04-16", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Locatario do imóvel toca", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o cliente locação", "ATIVIDADE": "Estabelecer pontos de automações para informar o locatario", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-16", "DATA DE FIM": "2026-06-30", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Locatario do imóvel toca", "Observações": "" },
-            { "ÁREA": "COMERCIAL", "FASE": "COMERCIAL", "DEMANDA": "Atendimento personalizado para o cliente locação", "ATIVIDADE": "Estabelecer processo", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-06-30", "DATA DE FIM": "2026-07-31", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Melhoria na experiência do Locatario do imóvel toca", "Observações": "" },
-            { "ÁREA": "MARKETING", "FASE": "COMERCIAL", "DEMANDA": "Novo Site com busca inteligente de imóveis baseado no perfil comportamental do cliente.", "ATIVIDADE": "Pesquisar ferramentas / IAs de busca imobiliária.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-01", "DATA DE FIM": "2026-04-15", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de conversão de Leads e melhora na experiência do usuário.", "Observações": "" },
-            { "ÁREA": "MARKETING", "FASE": "COMERCIAL", "DEMANDA": "Novo Site com busca inteligente de imóveis baseado no perfil comportamental do cliente.", "ATIVIDADE": "Contratar a ferramenta ideal.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-04-16", "DATA DE FIM": "2026-05-10", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de conversão de Leads e melhora na experiência do usuário.", "Observações": "" },
-            { "ÁREA": "MARKETING", "FASE": "COMERCIAL", "DEMANDA": "Novo Site com busca inteligente de imóveis baseado no perfil comportamental do cliente.", "ATIVIDADE": "Integrar com site atual e testar usabilidade.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-05-11", "DATA DE FIM": "2026-06-05", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de conversão de Leads e melhora na experiência do usuário.", "Observações": "" },
-            { "ÁREA": "MARKETING", "FASE": "COMERCIAL", "DEMANDA": "Novo Site com busca inteligente de imóveis baseado no perfil comportamental do cliente.", "ATIVIDADE": "Lançamento oficial e monitoramento de KPIs.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Michele", "DATA DE INICIO": "2026-06-06", "DATA DE FIM": "2026-06-30", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de conversão de Leads e melhora na experiência do usuário.", "Observações": "" },
-            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Centralização de Atendimento (Omnichannel) com transição fluida entre canais.", "ATIVIDADE": "Mapear fluxos de atendimento de todos os departamentos.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-03-20", "DATA DE FIM": "2026-04-10", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Redução do tempo de resposta e eliminação de mensagens perdidas.", "Observações": "" },
-            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Centralização de Atendimento (Omnichannel) com transição fluida entre canais.", "ATIVIDADE": "Avaliar plataformas Omnichannel (ex: Zenvia Blip).", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-04-11", "DATA DE FIM": "2026-04-30", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Redução do tempo de resposta e eliminação de mensagens perdidas.", "Observações": "" },
-            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Centralização de Atendimento (Omnichannel) com transição fluida entre canais.", "ATIVIDADE": "Homologar plataforma escolhida e iniciar migração.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-05-01", "DATA DE FIM": "2026-05-25", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Redução do tempo de resposta e eliminação de mensagens perdidas.", "Observações": "" },
-            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Centralização de Atendimento (Omnichannel) com transição fluida entre canais.", "ATIVIDADE": "Capacitar operadores e padronizar tom de voz.", "TIPO DE ENTREGA": "Capacitação", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-05-26", "DATA DE FIM": "2026-06-15", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Redução do tempo de resposta e eliminação de mensagens perdidas.", "Observações": "" },
-            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Centralização de Atendimento (Omnichannel) com transição fluida entre canais.", "ATIVIDADE": "Acompanhar indicators de SLA de atendimento.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-06-16", "DATA DE FIM": "2026-07-15", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Redução do tempo de resposta e eliminação de mensagens perdidas.", "Observações": "" },
-            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Redesenho do Funil de Atendimento de Aluguel e Vendas com SLAs definidos por etapa.", "ATIVIDADE": "Mapear gargalos e tempos médios atuais por fase.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-03-25", "DATA DE FIM": "2026-04-15", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "SLA claro e rastreável garantindo agilidade no fechamento de contratos.", "Observações": "" },
-            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Redesenho do Funil de Atendimento de Aluguel e Vendas com SLAs definidos por etapa.", "ATIVIDADE": "Redefinir as etapas do funil com gatilhos claros.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-04-16", "DATA DE FIM": "2026-05-05", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "SLA claro e rastreável garantindo agilidade no fechamento de contratos.", "Observações": "" },
-            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Redesenho do Funil de Atendimento de Aluguel e Vendas com SLAs definidos por etapa.", "ATIVIDADE": "Implantar alertas de estouro de SLA no CRM.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-05-06", "DATA DE FIM": "2026-05-30", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "SLA claro e rastreável garantindo agilidade no fechamento de contratos.", "Observações": "" },
-            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Redesenho do Funil de Atendimento de Aluguel e Vendas com SLAs definidos por etapa.", "ATIVIDADE": "Treinar equipe de atendimento nas novas diretrizes.", "TIPO DE ENTREGA": "Capacitação", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-06-01", "DATA DE FIM": "2026-06-15", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "SLA claro e rastreável garantindo agilidade no fechamento de contratos.", "Observações": "" },
-            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Programa de Capacitação Contínua em Vendas Consultivas e Novas Ferramentas.", "ATIVIDADE": "Diagnosticar principais gaps de vendas/atendimento.", "TIPO DE ENTREGA": "Capacitação", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-04-05", "DATA DE FIM": "2026-04-20", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de ticket médio e conversão de fechamento de negócios.", "Observações": "" },
-            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Programa de Capacitação Contínua em Vendas Consultivas e Novas Ferramentas.", "ATIVIDADE": "Elaborar trilhas de aprendizagem personalizadas.", "TIPO DE ENTREGA": "Capacitação", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-04-21", "DATA DE FIM": "2026-05-15", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de ticket médio e conversão de fechamento de negócios.", "Observações": "" },
-            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Programa de Capacitação Contínua em Vendas Consultivas e Novas Ferramentas.", "ATIVIDADE": "Aplicar primeiros módulos de treinamento focado em objeções.", "TIPO DE ENTREGA": "Capacitação", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-05-16", "DATA DE FIM": "2026-06-10", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de ticket médio e conversão de fechamento de negócios.", "Observações": "" },
-            { "ÁREA": "OPERACIONAL", "FASE": "PROCESSO", "DEMANDA": "Programa de Capacitação Contínua em Vendas Consultivas e Novas Ferramentas.", "ATIVIDADE": "Avaliar feedback e medir impacto no funil de vendas.", "TIPO DE ENTREGA": "Capacitação", "RESPONSÁVEL": "Gustavo", "DATA DE INICIO": "2026-06-11", "DATA DE FIM": "2026-07-05", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Aumento de ticket médio e conversão de fechamento de negócios.", "Observações": "" },
-            { "ÁREA": "JURÍDICO", "FASE": "PROCESSO", "DEMANDA": "Minutas Contratuais Automatizadas com assinatura eletrônica nativa via CRM.", "ATIVIDADE": "Revisar minutas padrão e simplificar textos contratuais.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-03-22", "DATA DE FIM": "2026-04-12", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Segurança jurídica combinada com agilidade extrema na assinatura.", "Observações": "" },
-            { "ÁREA": "JURÍDICO", "FASE": "PROCESSO", "DEMANDA": "Minutas Contratuais Automatizadas com assinatura eletrônica nativa via CRM.", "ATIVIDADE": "Homologar ferramenta de assinatura eletrônica integrada.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-04-13", "DATA DE FIM": "2026-04-30", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Segurança jurídica combinada com agilidade extrema na assinatura.", "Observações": "" },
-            { "ÁREA": "JURÍDICO", "FASE": "PROCESSO", "DEMANDA": "Minutas Contratuais Automatizadas com assinatura eletrônica nativa via CRM.", "ATIVIDADE": "Configurar preenchimento automático de campos do CRM.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-05-01", "DATA DE FIM": "2026-05-20", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Segurança jurídica combinada com agilidade extrema na assinatura.", "Observações": "" },
-            { "ÁREA": "JURÍDICO", "FASE": "PROCESSO", "DEMANDA": "Minutas Contratuais Automatizadas com assinatura eletrônica nativa via CRM.", "ATIVIDADE": "Lançar piloto com imobiliárias parceiras.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-05-21", "DATA DE FIM": "2026-06-15", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Segurança jurídica combinada com agilidade extrema na assinatura.", "Observações": "" },
-            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Atendimento Digital (IA) para resolução 100% automatizada de Nível 0 (boletos IR e FAQ).", "ATIVIDADE": "Mapear as perguntas mais recorrentes de clientes.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-03-15", "DATA DE FIM": "2026-03-31", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Modernização e economia no suporte telefônico.", "Observações": "" },
-            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Atendimento Digital (IA) para resolução 100% automatizada de Nível 0 (boletos IR e FAQ).", "ATIVIDADE": "Alimentar base de conhecimento da IA (FAQ).", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-04-01", "DATA DE FIM": "2026-04-20", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Autonomia total do cliente em dúvidas comuns.", "Observações": "" },
-            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Atendimento Digital (IA) para resolução 100% automatizada de Nível 0 (boletos IR e FAQ).", "ATIVIDADE": "Integrar IA com sistema financeiro para boletos.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-04-21", "DATA DE FIM": "2026-05-15", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Emissão de boletos 100% automatizada.", "Observações": "" },
-            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Atendimento Digital (IA) para resolução 100% automatizada de Nível 0 (boletos IR e FAQ).", "ATIVIDADE": "Monitorar taxa de retenção da IA sem intervenção humana.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Carlos", "DATA DE INICIO": "2026-05-16", "DATA DE FIM": "2026-06-10", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Redução real de carga de trabalho humana.", "Observações": "" },
-            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Follow-up Automático via Bot Realmate informando o cliente proativamente a cada mudança de etapa na esteira.", "ATIVIDADE": "Mapear eventos de mudança no Kurole que geram aviso.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Ana", "DATA DE INICIO": "2026-04-10", "DATA DE FIM": "2026-04-25", "STATUS": "Fechado", "GANHO COM A  DEMANDA CONCLUIDA": "Informação proativa para o cliente.", "Observações": "" },
-            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Follow-up Automático via Bot Realmate informando o cliente proativamente a cada mudança de etapa na esteira.", "ATIVIDADE": "Redigir templates de mensagens para cada fase.", "TIPO DE ENTREGA": "Padronização", "RESPONSÁVEL": "Ana", "DATA DE INICIO": "2026-04-26", "DATA DE FIM": "2026-05-10", "STATUS": "Andamento", "GANHO COM A  DEMANDA CONCLUIDA": "Comunicação clara em cada etapa do processo.", "Observações": "" },
-            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Follow-up Automático via Bot Realmate informando o cliente proativamente a cada mudança de etapa na esteira.", "ATIVIDADE": "Configurar webhooks para disparo imediato.", "TIPO DE ENTREGA": "Digitalização / IA", "RESPONSÁVEL": "Ana", "DATA DE INICIO": "2026-05-11", "DATA DE FIM": "2026-06-05", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Fim da cobrança manual de status pelo cliente.", "Observações": "" },
-            { "ÁREA": "ADM IMOVEIS", "FASE": "TECNOLOGIA", "DEMANDA": "Implementar Follow-up Automático via Bot Realmate informando o cliente proativamente a cada mudança de etapa na esteira.", "ATIVIDADE": "Treinar corretores no uso do Realmate.", "TIPO DE ENTREGA": "Capacitação", "RESPONSÁVEL": "Ana", "DATA DE INICIO": "2026-06-06", "DATA DE FIM": "2026-06-25", "STATUS": "Aberto", "GANHO COM A  DEMANDA CONCLUIDA": "Garantia de que o cliente receba os disparos corretos.", "Observações": "" }
-        ];
 
         // Estado Geral do Dashboard
         let currentProjectData = [];
@@ -776,12 +716,33 @@
         let activeStatusFilter = ""; // Status selecionado via pipeline superior
         let activeAreaMatrixFilter = ""; // Área selecionada na matriz organizativa
 
+        const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSGcQuDudzI8zWrcXUHeDOpYgyLnv5lQZpr0XpNHSZV5M3nFJ9hRJaEpvdQnTSd5kPJ5RAHcOzYG8MC/pub?gid=0&single=true&output=csv";
+
+        function carregarDoSheets() {
+            Papa.parse(SHEET_URL, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        loadDataset(results.data);
+                        const now = new Date();
+                        document.getElementById('update-timestamp').innerText = `Atualizado às ${now.toLocaleTimeString('pt-BR')}`;
+                        const feedback = document.getElementById('upload-feedback');
+                        feedback.classList.remove('hidden');
+                        setTimeout(() => feedback.classList.add('hidden'), 4000);
+                    }
+                },
+                error: function(err) {
+                    console.error("Erro ao carregar Sheets:", err);
+                    showToast("Erro ao conectar com o Google Sheets.", "error");
+                }
+            });
+        }
+
         window.onload = function() {
-            // Inicializa com dados padrões incorporados
-            loadDataset(DEFAULT_DATA);
-            
-            // Configura os escutadores do File Dropzone
-            setupFileHandlers();
+            carregarDoSheets();
+            setInterval(carregarDoSheets, 5 * 60 * 1000);
         };
 
         // Carrega um conjunto de dados e reconstrói o painel
@@ -1711,72 +1672,6 @@
                     `;
                 }
             }
-        }
-
-        // GERENCIADORES DO DROPZONE DE ARQUIVO CSV
-        function setupFileHandlers() {
-            const dropzone = document.getElementById('dropzone');
-            const fileInput = document.getElementById('csv-file-input');
-
-            // Drag over effects
-            dropzone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropzone.classList.add('border-brand-500', 'bg-brand-50/20');
-            });
-
-            dropzone.addEventListener('dragleave', () => {
-                dropzone.classList.remove('border-brand-500', 'bg-brand-50/20');
-            });
-
-            dropzone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('border-brand-500', 'bg-brand-50/20');
-                
-                const file = e.dataTransfer.files[0];
-                if (file) handleCSVFile(file);
-            });
-
-            // File selection
-            fileInput.addEventListener('change', () => {
-                const file = fileInput.files[0];
-                if (file) handleCSVFile(file);
-            });
-        }
-
-        // Processamento do arquivo de texto carregado
-        function handleCSVFile(file) {
-            if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
-                showToast('Aviso: Certifique-se de carregar um arquivo com extensão .CSV para que o dashboard seja atualizado.', 'error');
-                return;
-            }
-
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                complete: function(results) {
-                    if (results.data && results.data.length > 0) {
-                        // Salva dados
-                        loadDataset(results.data);
-                        
-                        // Atualiza data de modificação
-                        const now = new Date();
-                        document.getElementById('update-timestamp').innerText = `Atualizado às ${now.toLocaleTimeString('pt-BR')} de hoje`;
-                        
-                        // Mostrar Feedback de Sucesso
-                        const feedback = document.getElementById('upload-feedback');
-                        feedback.classList.remove('hidden');
-                        setTimeout(() => feedback.classList.add('hidden'), 5000);
-                        
-                        showToast("Dados recarregados com sucesso!", "success");
-                    } else {
-                        showToast('Não foi possível ler dados válidos do arquivo CSV.', 'error');
-                    }
-                },
-                error: function(err) {
-                    console.error("Erro PapaParse:", err);
-                    showToast("Erro crítico ao processar o arquivo de dados.", "error");
-                }
-            });
         }
 
         // SISTEMA DE TOASTS/NOTIFICAÇÕES DA INTERFACE
