@@ -171,9 +171,9 @@
                                     </span>
                                     <div class="flex items-center gap-2">
                                         <div class="w-20 bg-slate-100 rounded-full h-1.5">
-                                            <div class="bg-brand-600 h-1.5 rounded-full" style="width: 22%"></div>
+                                            <div class="bg-brand-600 h-1.5 rounded-full" id="matrix-bar-COMERCIAL" style="width: 0%"></div>
                                         </div>
-                                        <span class="text-[10px] font-black text-slate-500">Plano: 22%</span>
+                                        <span class="text-[10px] font-black text-slate-500" id="matrix-pct-COMERCIAL">Plano: 0%</span>
                                     </div>
                                 </div>
                             </td>
@@ -202,9 +202,9 @@
                                     </span>
                                     <div class="flex items-center gap-2">
                                         <div class="w-20 bg-slate-100 rounded-full h-1.5">
-                                            <div class="bg-brand-600 h-1.5 rounded-full" style="width: 24%"></div>
+                                            <div class="bg-brand-600 h-1.5 rounded-full" id="matrix-bar-MARKETING" style="width: 0%"></div>
                                         </div>
-                                        <span class="text-[10px] font-black text-slate-500">Plano: 24%</span>
+                                        <span class="text-[10px] font-black text-slate-500" id="matrix-pct-MARKETING">Plano: 0%</span>
                                     </div>
                                 </div>
                             </td>
@@ -233,9 +233,9 @@
                                     </span>
                                     <div class="flex items-center gap-2">
                                         <div class="w-20 bg-slate-100 rounded-full h-1.5">
-                                            <div class="bg-brand-600 h-1.5 rounded-full" style="width: 16%"></div>
+                                            <div class="bg-brand-600 h-1.5 rounded-full" id="matrix-bar-ADMIMOVEIS" style="width: 0%"></div>
                                         </div>
-                                        <span class="text-[10px] font-black text-slate-500">Plano: 16%</span>
+                                        <span class="text-[10px] font-black text-slate-500" id="matrix-pct-ADMIMOVEIS">Plano: 0%</span>
                                     </div>
                                 </div>
                             </td>
@@ -258,9 +258,17 @@
                                 </span>
                             </td>
                             <td class="py-3.5 px-4">
-                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-brand-700 border border-blue-200">
-                                    <i class="fa-solid fa-spinner animate-spin"></i> Em Curso
-                                </span>
+                                <div class="space-y-1.5">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-brand-700 border border-blue-200">
+                                        <i class="fa-solid fa-spinner animate-spin"></i> Em Curso
+                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-20 bg-slate-100 rounded-full h-1.5">
+                                            <div class="bg-brand-600 h-1.5 rounded-full" id="matrix-bar-FINANCEIRO" style="width: 0%"></div>
+                                        </div>
+                                        <span class="text-[10px] font-black text-slate-500" id="matrix-pct-FINANCEIRO">Plano: 0%</span>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
 
@@ -281,9 +289,17 @@
                                 </span>
                             </td>
                             <td class="py-3.5 px-4">
-                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-brand-700 border border-blue-200">
-                                    <i class="fa-solid fa-spinner animate-spin"></i> Em Curso
-                                </span>
+                                <div class="space-y-1.5">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-brand-700 border border-blue-200">
+                                        <i class="fa-solid fa-spinner animate-spin"></i> Em Curso
+                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-20 bg-slate-100 rounded-full h-1.5">
+                                            <div class="bg-brand-600 h-1.5 rounded-full" id="matrix-bar-RH" style="width: 0%"></div>
+                                        </div>
+                                        <span class="text-[10px] font-black text-slate-500" id="matrix-pct-RH">Plano: 0%</span>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
 
@@ -725,6 +741,8 @@
                 complete: function(results) {
                     if (results.data && results.data.length > 0) {
                         loadDataset(results.data);
+                        const areas = [...new Set(currentProjectData.map(r => r['ÁREA']))];
+                        console.log("Áreas encontradas na planilha:", areas);
                         const now = new Date();
                         document.getElementById('update-timestamp').innerText = `Atualizado às ${now.toLocaleTimeString('pt-BR')}`;
                         const feedback = document.getElementById('upload-feedback');
@@ -743,7 +761,29 @@
             carregarDoSheets();
             setInterval(carregarDoSheets, 5 * 60 * 1000);
         };
+        function updateAreaMatrix() {
+            const areaMap = {
+                'COMERCIAL': 'COMERCIAL',
+                'MARKETING': 'MARKETING',
+                'ADM IMOVEIS': 'ADMIMOVEIS',
+                'FINANCEIRO': 'FINANCEIRO',
+                'G&G': 'RH',
+            };
 
+            for (let area in areaMap) {
+                const id = areaMap[area];
+                const areaActs = currentProjectData.filter(r => r['ÁREA'] === area);
+                if (areaActs.length === 0) continue;
+
+                const closed = areaActs.filter(r => getNormalizedStatus(r['STATUS']) === 'Fechado').length;
+                const pct = Math.round((closed / areaActs.length) * 100);
+
+                const bar = document.getElementById(`matrix-bar-${id}`);
+                const label = document.getElementById(`matrix-pct-${id}`);
+                if (bar) bar.style.width = `${pct}%`;
+                if (label) label.innerText = `Plano: ${pct}%`;
+            }
+        }
         // Carrega um conjunto de dados e reconstrói o painel
         function loadDataset(rawRows) {
             currentProjectData = rawRows.map(row => {
@@ -784,6 +824,7 @@
             updatePipelineCounts();
 
             // Aplica filtros e renderiza
+            updateAreaMatrix();
             applyFilters();
         }
 
@@ -855,12 +896,13 @@
                 clearAreaMatrixFilter();
             } else {
                 activeAreaMatrixFilter = areaValue;
-                
+
                 // Trata mapeamento especial de TI (Tecnologias de Informação foca no escopo tecnológico de ADM IMOVEIS)
+                const areaAlias = { 'RH': 'G&G' };
                 if (areaValue === 'TI') {
                     areaDropdown.value = ''; // Reseta dropdown para usar regra especial
                 } else {
-                    areaDropdown.value = areaValue;
+                    areaDropdown.value = areaAlias[areaValue] || areaValue;
                 }
 
                 // Atualiza o indicador de filtro ativo
@@ -948,17 +990,21 @@
         // Sincroniza o dropdown inferior de área com a matriz de maturidade superior
         function syncWithDropdownArea() {
             const val = document.getElementById('filter-area').value;
-            activeAreaMatrixFilter = val;
-            
+            // Inverte o alias: na planilha é "G&G", na matriz/interface é "RH"
+            const reverseAlias = { 'G&G': 'RH' };
+            activeAreaMatrixFilter = reverseAlias[val] || val;
+
             if (val === '') {
                 document.getElementById('matrix-filter-indicator').classList.add('hidden');
             } else {
                 const friendlyNames = {
                     'COMERCIAL': 'Comercial',
                     'MARKETING': 'Marketing',
-                    'ADM IMOVEIS': 'Administração de Imóveis'
+                    'ADM IMOVEIS': 'Administração de Imóveis',
+                    'FINANCEIRO': 'Financeiro',
+                    'RH': 'Pessoas e Cultura (RH)'
                 };
-                document.getElementById('matrix-active-area-name').innerText = friendlyNames[val] || val;
+                document.getElementById('matrix-active-area-name').innerText = friendlyNames[activeAreaMatrixFilter] || val;
                 document.getElementById('matrix-filter-indicator').classList.remove('hidden');
             }
 
@@ -1017,7 +1063,9 @@
                     if (activeArea === 'TI') {
                         matchArea = row['FASE'] === 'TECNOLOGIA';
                     } else {
-                        matchArea = row['ÁREA'] === activeArea;
+                        const areaAlias = { 'RH': 'G&G' };
+                        const areaToMatch = areaAlias[activeArea] || activeArea;
+                        matchArea = row['ÁREA'] === areaToMatch;
                     }
                 }
 
