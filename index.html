@@ -830,26 +830,24 @@
 
             // Popula os seletores de filtros
             populateFilterOptions();
-            
-            // Calcula métricas estáticas do pipeline completo (antes de qualquer filtro ativo)
-            updatePipelineCounts();
 
-            // Aplica filtros e renderiza
+            // Aplica filtros e renderiza (também recalcula o pipeline superior)
             updateAreaMatrix();
             applyFilters();
         }
 
-        // Calcula quantidades para a barra de pipeline superior (com base nos dados originais brutos)
-        function updatePipelineCounts() {
+        // Calcula quantidades para a barra de pipeline superior (com base no recorte atual de área/responsável/busca, ignorando o próprio filtro de status)
+        function updatePipelineCounts(baseData) {
+            const data = baseData || currentProjectData;
             const counts = { Aberto: 0, Andamento: 0, Fechado: 0 };
-            currentProjectData.forEach(row => {
+            data.forEach(row => {
                 const norm = getNormalizedStatus(row['STATUS']);
                 if (counts.hasOwnProperty(norm)) {
                     counts[norm]++;
                 }
             });
 
-            document.getElementById('pipeline-count-all').innerText = currentProjectData.length;
+            document.getElementById('pipeline-count-all').innerText = data.length;
             document.getElementById('pipeline-count-aberto').innerText = counts.Aberto;
             document.getElementById('pipeline-count-andamento').innerText = counts.Andamento;
             document.getElementById('pipeline-count-fechado').innerText = counts.Fechado;
@@ -1061,8 +1059,10 @@
             // Define qual filtro de área usar (priorizando matriz superior se ativa)
             const activeArea = activeAreaMatrixFilter || areaDropdownValue;
 
-            filteredProjectData = currentProjectData.filter(row => {
-                const matchSearch = !searchText || 
+            // Recorte base: aplica busca/área/responsável, mas ainda não o status,
+            // para que a barra de pipeline superior reflita o mesmo recorte da lista abaixo
+            const baseFiltered = currentProjectData.filter(row => {
+                const matchSearch = !searchText ||
                     (row['DEMANDA'] && row['DEMANDA'].toLowerCase().includes(searchText)) ||
                     (row['ATIVIDADE'] && row['ATIVIDADE'].toLowerCase().includes(searchText)) ||
                     (row['RESPONSÁVEL'] && row['RESPONSÁVEL'].toLowerCase().includes(searchText)) ||
@@ -1081,11 +1081,15 @@
                 }
 
                 const matchResp = !respValue || row['RESPONSÁVEL'] === respValue;
-                
-                const normStatus = getNormalizedStatus(row['STATUS']);
-                const matchStatus = !statusValue || normStatus === statusValue;
 
-                return matchSearch && matchArea && matchResp && matchStatus;
+                return matchSearch && matchArea && matchResp;
+            });
+
+            updatePipelineCounts(baseFiltered);
+
+            filteredProjectData = baseFiltered.filter(row => {
+                const normStatus = getNormalizedStatus(row['STATUS']);
+                return !statusValue || normStatus === statusValue;
             });
 
             updateDashboard();
@@ -1105,8 +1109,7 @@
             updatePipelineStyles();
             updateAreaMatrixStyles();
 
-            filteredProjectData = [...currentProjectData];
-            updateDashboard();
+            applyFilters();
             showToast("Todos os filtros foram limpos!", "success");
         }
 
