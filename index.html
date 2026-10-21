@@ -782,7 +782,7 @@
             for (let area in areaMap) {
                 const id = areaMap[area];
                 const areaActs = area === 'TI'
-                    ? currentProjectData.filter(r => r['FASE'] === 'TECNOLOGIA')
+                    ? currentProjectData.filter(r => r['ÁREA'] === 'TI E PROCESSOS')
                     : currentProjectData.filter(r => r['ÁREA'] === area);
                 if (areaActs.length === 0) continue;
 
@@ -1068,11 +1068,11 @@
                     (row['RESPONSÁVEL'] && row['RESPONSÁVEL'].toLowerCase().includes(searchText)) ||
                     (row['ÁREA'] && row['ÁREA'].toLowerCase().includes(searchText));
 
-                // Tratamento especial de TI: foca nas tarefas da fase de TECNOLOGIA
+                // Tratamento especial de TI: a área na planilha se chama "TI E PROCESSOS"
                 let matchArea = true;
                 if (activeArea) {
                     if (activeArea === 'TI') {
-                        matchArea = row['FASE'] === 'TECNOLOGIA';
+                        matchArea = row['ÁREA'] === 'TI E PROCESSOS';
                     } else {
                         const areaAlias = { 'RH': 'G&G' };
                         const areaToMatch = areaAlias[activeArea] || activeArea;
